@@ -84,46 +84,6 @@ async fn main() {
     store_lock.insert(String::from(constants::GALAXY_CLIENT_ID), galaxy_token);
     drop(store_lock);
 
-    let client_clone: Client = reqwest_client.clone();
-    tokio::spawn(async move {
-        let mut retries = 0;
-        loop {
-            if retries > 10 {
-                log::warn!("Failed to get peer libraries over 10 times, will not try again");
-                return;
-            }
-            tokio::time::sleep(Duration::from_secs(retries * 5)).await;
-            retries += 1;
-
-            let result_win = api::gog::components::get_component(
-                &client_clone,
-                paths::REDISTS_STORAGE.clone(),
-                api::gog::components::Platform::Windows,
-                api::gog::components::Component::Peer,
-            )
-            .await;
-            #[cfg(target_os = "macos")]
-            let result_mac = api::gog::components::get_component(
-                &client_clone,
-                paths::REDISTS_STORAGE.clone(),
-                api::gog::components::Platform::Mac,
-                api::gog::components::Component::Peer,
-            )
-            .await;
-
-            #[cfg(target_os = "macos")]
-            if result_win.is_ok() && result_mac.is_ok() {
-                break;
-            } else {
-                continue;
-            }
-
-            #[cfg(not(target_os = "macos"))]
-            if result_win.is_ok() {
-                break;
-            }
-        }
-    });
 
     let listener = TcpListener::bind("127.0.0.1:9977")
         .await
@@ -134,17 +94,7 @@ async fn main() {
     let pusher_shutdown = shutdown_token.clone(); // Handler for notifications-pusher
     let cloned_shutdown = shutdown_token.clone(); // Handler to share between main thread and sockets
 
-    let notifications_pusher_topic_sender = topic_sender.clone();
-    let pusher_handle = tokio::spawn(async move {
-        let mut notification_pusher_client = NotificationPusherClient::new(
-            &access_token,
-            notifications_pusher_topic_sender,
-            pusher_shutdown,
-        )
-        .await;
-        notification_pusher_client.handle_loop().await;
-        warn!("Notification pusher exiting");
-    });
+    
     tokio::spawn(async move {
         tokio::signal::ctrl_c()
             .await
@@ -163,7 +113,7 @@ async fn main() {
         Ok(wait) => wait.parse().unwrap_or(15),
         Err(_) => 15,
     };
-    let mut ever_connected = false;
+    let ever_connected = false;
     let mut active_clients = 0;
     let mut handlers = Vec::new();
     loop {
@@ -214,6 +164,5 @@ async fn main() {
     }
 
     // Ignore errors, we are exiting
-    let _ = pusher_handle.await;
     join_all(handlers).await;
 }
