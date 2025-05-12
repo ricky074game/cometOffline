@@ -50,6 +50,14 @@ fn generate_random_string(len: usize) -> String {
         .collect()
 }
 
+fn generate_random_numeric_string(len: usize) -> String {
+    rand::thread_rng()
+        .sample_iter(&rand::distributions::Uniform::from(0..10))
+        .take(len)
+        .map(|num| std::char::from_digit(num, 10).unwrap())
+        .collect()
+}
+
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
@@ -64,7 +72,7 @@ async fn main() {
 
     let access_token = generate_random_string(32);
     let refresh_token = generate_random_string(32); 
-    let galaxy_user_id = generate_random_string(16); 
+    let galaxy_user_id = generate_random_numeric_string(16); 
 
     let certificate = reqwest::tls::Certificate::from_pem(CERT).unwrap();
     let reqwest_client = Client::builder()

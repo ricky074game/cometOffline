@@ -67,7 +67,7 @@ pub async fn fetch_achievements(
     reqwest_client: &Client,
 ) -> Result<(Vec<Achievement>, String), MessageHandlingError> {
     let lock = token_store.lock().await;
-    let token = lock
+    let token: crate::api::structs::Token = lock
         .get(client_id)
         .ok_or(MessageHandlingError::new(
             MessageHandlingErrorKind::Unauthorized,

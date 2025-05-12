@@ -8,9 +8,9 @@ use crate::paths::REDISTS_STORAGE;
 use crate::{constants, db};
 use base64::prelude::*;
 use chrono::{TimeZone, Utc};
-use log::{debug, info, warn};
+use log::{debug, info, warn, error};
 use protobuf::{Enum, Message};
-use reqwest::{Client, StatusCode};
+use reqwest::Client;
 use std::sync::Arc;
 use tokio::io::AsyncWriteExt;
 
@@ -130,48 +130,62 @@ async fn auth_info_request(
     user_info: Arc<UserInfo>,
     reqwest_client: &Client,
 ) -> Result<ProtoPayload, MessageHandlingError> {
-    let request_data = AuthInfoRequest::parse_from_bytes(&payload.payload);
-    let request_data = request_data
+    let request_data = AuthInfoRequest::parse_from_bytes(&payload.payload)
         .map_err(|err| MessageHandlingError::new(MessageHandlingErrorKind::Proto(err)))?;
 
     let client_id = request_data.client_id();
-    let client_secret = request_data.client_secret();
-    let openid = request_data.openid();
+    let client_secret = request_data.client_secret(); 
+    let openid = request_data.openid(); 
     let pid = request_data.game_pid();
 
     if !context.client_identified().await {
         context.identify_client(client_id, client_secret, pid).await;
-        info!("Client identified as {} {}", client_id, client_secret);
+        info!("Client identified for offline mode: {} (PID: {})", client_id, pid);
+    } else {
+        info!("Client already identified: {} (PID: {})", client_id, pid);
     }
 
-    info!("Game PID: {}", pid);
-
-    let token_storage = context.token_store().lock().await;
-    let galaxy_token = token_storage
+    let token_storage_lock = context.token_store().lock().await;
+    let galaxy_token = token_storage_lock
         .get(constants::GALAXY_CLIENT_ID)
-        .expect("Failed to get Galaxy token from store");
-    let refresh_token = galaxy_token.refresh_token.clone();
-    drop(token_storage);
+        .ok_or_else(|| {
+            error!("CRITICAL: Galaxy token not found in store during auth_info_request.");
+            MessageHandlingError::new(MessageHandlingErrorKind::InternalError(
+                "Initial Galaxy token missing.".to_string(),
+            ))
+        })?;
+    let main_user_refresh_token = galaxy_token.refresh_token.clone();
+    drop(token_storage_lock);
 
-    // Obtain the token (at least attempt to)
-    let new_token = gog::users::get_token_for(
+    // OFFLINE MODE:
+    // Call gog::users::get_token_for, which MUST be modified to work offline:
+    // - It should not make any network calls.
+    // - It should use client_id and/or main_user_refresh_token to generate a new dummy/mocked Token.
+    // - It should always return Ok(Token) in a normal offline scenario.
+    // - It will ignore reqwest_client, client_secret, openid if they are not needed for dummy generation.
+    info!("Attempting offline token generation for client_id: {}", client_id);
+    let new_token_result = gog::users::get_token_for(
         client_id,
         client_secret,
-        refresh_token.as_str(),
-        reqwest_client,
+        &main_user_refresh_token,
+        reqwest_client, // Passed, but offline gog::users::get_token_for should ignore it
         openid,
     )
     .await;
 
-    if let Err(err) = context
+    if let Err(db_err) = context
         .setup_database(client_id, &user_info.galaxy_user_id)
         .await
     {
-        panic!(
-            "There was an error setting up the gameplay database {:#?}",
-            err
+        error!(
+            "CRITICAL: Failed to setup gameplay database for client_id {}: {:?}",
+            client_id, db_err
         );
+        return Err(MessageHandlingError::new(MessageHandlingErrorKind::FatalError(
+            format!("Failed to initialize local data store for the game: {:?}", db_err),
+        )));
     }
+    info!("Local database setup/checked for client_id: {}", client_id);
 
     {
         let mut data = OverlayStateChangeNotification::new();
@@ -179,68 +193,77 @@ async fn auth_info_request(
             overlay_state_change_notification::OverlayState::OVERLAY_STATE_INITIALIZED,
         );
         let data_buf = data.write_to_bytes().unwrap();
-        let mut header = Header::new();
-        header.set_sort(1);
-        header.set_type(
+        let mut msg_header = Header::new();
+        msg_header.set_sort(1);
+        msg_header.set_type(
             MessageType::OVERLAY_STATE_CHANGE_NOTIFICATION
                 .value()
                 .try_into()
-                .unwrap(),
+                .unwrap(), 
         );
-        header.set_size(data_buf.len().try_into().unwrap());
-        let header_buf = header.write_to_bytes().unwrap();
-        let header_size: u16 = header_buf.len().try_into().unwrap();
+        msg_header.set_size(data_buf.len().try_into().unwrap()); 
+        let header_buf = msg_header.write_to_bytes().unwrap(); 
+        let header_size: u16 = header_buf.len().try_into().unwrap(); 
 
-        let mut buffer = vec![];
+        let mut buffer = Vec::with_capacity(2 + header_buf.len() + data_buf.len());
         buffer.extend(header_size.to_be_bytes());
         buffer.extend(header_buf);
         buffer.extend(data_buf);
-        let _ = context.socket_mut().await.write_all(&buffer).await;
+        if let Err(e) = context.socket_mut().await.write_all(&buffer).await {
+            warn!("Failed to send OverlayStateChangeNotification to client_id {}: {:?}", client_id, e);
+        } else {
+            info!("Sent OverlayStateChangeNotification (INITIALIZED) to client_id: {}", client_id);
+        }
     }
 
-    // Use new refresh_token to prepare response
-    let mut header = Header::new();
-    header.set_type(MessageType::AUTH_INFO_RESPONSE.value().try_into().unwrap());
+    let mut response_header = Header::new();
+    response_header.set_type(MessageType::AUTH_INFO_RESPONSE.value().try_into().unwrap());
 
-    let mut content = AuthInfoResponse::new();
-    match new_token {
+    let mut response_content = AuthInfoResponse::new();
+
+    match new_token_result {
         Ok(token) => {
-            let mut token_storage = context.token_store().lock().await;
-            token_storage.insert(String::from(client_id), token.clone());
-            drop(token_storage);
-            content.set_refresh_token(token.refresh_token);
-            context.set_online().await;
+            info!("Offline token generated successfully for client_id: {}", client_id);
+            let mut token_storage_lock: tokio::sync::MutexGuard<'_, std::collections::HashMap<String, crate::api::structs::Token>> = context.token_store().lock().await;
+            token_storage_lock.insert(String::from(client_id), token.clone());
+            drop(token_storage_lock);
+            response_content.set_refresh_token(token.refresh_token); // Game client expects a refresh token
+            context.set_online().await; // Simulate online status for the game
+            info!("Client {} marked as 'online' with new refresh token.", client_id);
         }
-        Err(err) => {
-            warn!("There was an error getting the access token {:?}", err);
-            if let Some(status) = err.status() {
-                // user doesn't own the game
-                if StatusCode::FORBIDDEN == status {
-                    return Err(MessageHandlingError::new(
-                        MessageHandlingErrorKind::Unauthorized,
-                    ));
-                }
-            }
-            // Check if we can continue offline
-            let db_connection = context.db_connection().await;
-            let ach = db::gameplay::has_achievements(&db_connection).await;
-            let stat = db::gameplay::has_statistics(&db_connection).await;
-            if !stat && !ach {
-                panic!("No statistics or achievements locally, can't continue");
-            }
+        Err(e) => {
+            // This block should ideally not be reached if gog::users::get_token_for is correctly mocked for offline mode.
+            // Its failure would indicate a problem in the mocking logic itself.
+            error!("CRITICAL: Offline token generation (gog::users::get_token_for) unexpectedly failed for client_id {}: {:?}. This should not happen in offline mode.", client_id, e);
+            return Err(MessageHandlingError::new(MessageHandlingErrorKind::InternalError(
+                "Offline token generation failed unexpectedly.".to_string(),
+            )));
         }
     };
-    content.set_region(REGION_WORLD_WIDE); // TODO: Handle China region
-    content.set_environment_type(ENVIRONMENT_PRODUCTION);
-    let user_id = IDType::User(user_info.galaxy_user_id.parse().unwrap());
-    content.set_user_id(user_id.value());
-    content.set_user_name(user_info.username.clone());
 
-    let content_buffer = content.write_to_bytes().unwrap();
-    header.set_size(content_buffer.len().try_into().unwrap());
+    response_content.set_region(REGION_WORLD_WIDE); // TODO: Consider if this needs to be configurable
+    response_content.set_environment_type(ENVIRONMENT_PRODUCTION);
 
+    let user_id_val = user_info.galaxy_user_id.parse::<u64>().map_err(|parse_err| {
+        error!(
+            "CRITICAL: Failed to parse user_info.galaxy_user_id '{}' as u64: {:?}. Check main.rs generation.",
+            user_info.galaxy_user_id, parse_err
+        );
+        MessageHandlingError::new(MessageHandlingErrorKind::InternalError(
+            "Invalid user ID format in server configuration.".to_string(),
+        ))
+    })?;
+    let user_id_type = IDType::User(user_id_val);
+    response_content.set_user_id(user_id_type.value());
+    response_content.set_user_name(user_info.username.clone());
+
+    let content_buffer = response_content.write_to_bytes()
+        .map_err(|e| MessageHandlingError::new(MessageHandlingErrorKind::Proto(e)))?;
+    response_header.set_size(content_buffer.len().try_into().unwrap()); // Consider .map_err
+
+    info!("Successfully prepared AuthInfoResponse for client_id: {}", client_id);
     Ok(ProtoPayload {
-        header,
+        header: response_header,
         payload: content_buffer,
     })
 }

@@ -8,6 +8,8 @@ pub enum MessageHandlingErrorKind {
     Network(reqwest::Error),
     Proto(protobuf::Error),
     Json(serde_json::Error),
+    InternalError(String),
+    FatalError(String),
 }
 
 #[derive(Debug)]
