@@ -1,0 +1,252 @@
+2025-05-12T21:57:43.072575+00:00 LENOVO galaxy_peer: DEBUG [GenericListenerRegistry] No registered listeners of type 87
+2025-05-12T21:57:43.072634+00:00 LENOVO galaxy_peer: INFO [GalaxyFacade] Initializing GalaxyPeer: platform=Windows_32bit, clientID=50225266424144145, version=1.133.0.0
+2025-05-12T21:57:43.078509+00:00 LENOVO galaxy_peer: INFO [GalaxyFacade] OpenSSL version: OpenSSL 1.0.2p  14 Aug 2018
+2025-05-12T21:57:43.079092+00:00 LENOVO galaxy_peer: DEBUG [InternalThread] begin
+2025-05-12T21:57:43.088037+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=16, obj=1394F814
+2025-05-12T21:57:43.088067+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=33, obj=1394F820
+2025-05-12T21:57:43.088074+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=63, obj=1394F82C
+2025-05-12T21:57:43.088582+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=22, obj=1394F864
+2025-05-12T21:57:43.088616+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=25, obj=1394F870
+2025-05-12T21:57:43.088630+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=2, obj=1394F8EC
+2025-05-12T21:57:43.088639+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=21, obj=1394F8A8
+2025-05-12T21:57:43.088644+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=3, obj=1394F8B4
+2025-05-12T21:57:43.089350+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=65, obj=1394F7C0
+2025-05-12T21:57:43.089384+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=16, obj=1394F7CC
+2025-05-12T21:57:43.089390+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=33, obj=1394F7D8
+2025-05-12T21:57:43.094687+00:00 LENOVO galaxy_peer: DEBUG [FacadeRegistrar] Registering listener: type=7, obj=0A23F800
+2025-05-12T21:57:43.096240+00:00 LENOVO galaxy_peer: DEBUG [FacadeRegistrar] Registering listener: type=60, obj=0A44A708
+2025-05-12T21:57:43.097232+00:00 LENOVO galaxy_peer: DEBUG [InternalScheduler] Scheduling (0x0A4B786C) SignInWithGalaxyInternalEvent: asyncOperations=[]
+2025-05-12T21:57:43.097376+00:00 LENOVO galaxy_peer: DEBUG [InternalScheduler] Running (0x0A4B786C) SignInWithGalaxyInternalEvent: asyncOperations=[]
+2025-05-12T21:57:43.103774+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::AuthInfoRetriever] <constructor: timeout=15.000000 s>
+2025-05-12T21:57:43.103788+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::AuthInfoRetriever] AuthInfoRetriever
+2025-05-12T21:57:43.103792+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::AuthInfoRetriever] Init
+2025-05-12T21:57:43.107259+00:00 LENOVO galaxy_peer: DEBUG [SelfManagingGogPbConnection(CommunicationService)] Initializing, connection not present
+2025-05-12T21:57:43.107893+00:00 LENOVO galaxy_peer: DEBUG [AuthInfoRetriever::CommunicationServiceGetAuthInfoListener] CommunicationServiceGetAuthInfoListener
+2025-05-12T21:57:43.107900+00:00 LENOVO galaxy_peer: INFO [CommunicationServiceClient] Performing a get auth info request
+2025-05-12T21:57:43.107946+00:00 LENOVO galaxy_peer: DEBUG [SelfManagingGogPbConnection(CommunicationService)] Scheduling request message for sending later: no connection
+2025-05-12T21:57:43.107948+00:00 LENOVO galaxy_peer: DEBUG [SelfManagingGogPbConnection(CommunicationService)] Requesting for a new connection now
+2025-05-12T21:57:43.120485+00:00 LENOVO galaxy_peer: DEBUG [TcpSocket(127.0.0.1:9977)] constructor
+2025-05-12T21:57:43.120714+00:00 LENOVO galaxy_peer: DEBUG [CommunicationService] Resolved address 127.0.0.1:9977 to following ips 127.0.0.1:9977
+2025-05-12T21:57:43.121026+00:00 LENOVO galaxy_peer: DEBUG [CommunicationService] Connected to address 127.0.0.1:9977 (127.0.0.1:9977)
+2025-05-12T21:57:43.121034+00:00 LENOVO galaxy_peer: INFO [SelfManagingGogPbConnection::ConnectorListener] Connection established
+2025-05-12T21:57:43.121049+00:00 LENOVO galaxy_peer: INFO [SelfManagingGogPbConnection(CommunicationService)] Resending scheduled messages: requestMessageCount=1
+2025-05-12T21:57:43.121055+00:00 LENOVO galaxy_peer: DEBUG [GogPbConnection(CommunicationService)] Sending message: oseq=1, sort=1, type=3, contentSize=89
+2025-05-12T21:57:43.121076+00:00 LENOVO galaxy_peer: DEBUG [GogPbConnection(CommunicationService)::RequestContext] Initialize: request=(sort=1, type=3, id=1, timeout=3, retriesLeft=3)
+2025-05-12T21:57:43.150897+00:00 LENOVO galaxy_peer: DEBUG [GogPbConnection(CommunicationService)::TransportListener] Data received; protocol connection present
+2025-05-12T21:57:43.150922+00:00 LENOVO galaxy_peer: DEBUG [GogPbConnection(CommunicationService)::TransportListener] Incoming header: oseq=0, sort=1, type=58, size=2
+2025-05-12T21:57:43.150926+00:00 LENOVO galaxy_peer: DEBUG [GogPbConnection(CommunicationService)::TransportListener] Identified incoming message as either a request or an ad-hoc message
+2025-05-12T21:57:43.150952+00:00 LENOVO galaxy_peer: INFO [OverlayStateChangeNotificationHandler] Received overlay state change: state=4
+2025-05-12T21:57:43.150987+00:00 LENOVO galaxy_peer: DEBUG [GogPbConnection(CommunicationService)::TransportListener] Incoming header: oseq=0, sort=1, type=4, size=61
+2025-05-12T21:57:43.151006+00:00 LENOVO galaxy_peer: DEBUG [GogPbConnection(CommunicationService)::TransportListener] Identified Incoming message as a response: rseq=1
+2025-05-12T21:57:43.151021+00:00 LENOVO galaxy_peer: DEBUG [SelfManagingGogPbConnection::ResponseListener] Request finished with a response: request=(sort=1, type=3, id=1, timeout=3, retriesLeft=3), response=(sort=1, type=4, requestId=1, code=200)
+2025-05-12T21:57:43.151056+00:00 LENOVO galaxy_peer: INFO [CommunicationServiceClient::GetAuthInfoListener] Succeeded to get auth info: refreshToken=(slX1hESz..., 32 chars), userID=1312296433123039, userName=ricky074game, environmentType=0, region=0
+2025-05-12T21:57:43.151069+00:00 LENOVO galaxy_peer: DEBUG [AuthInfoRetriever::CommunicationServiceGetAuthInfoListener] OnGetAuthInfoSuccess
+2025-05-12T21:57:43.151126+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.appenders, value=File, Syslog
+2025-05-12T21:57:43.151138+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.File.level, value=DEBUG
+2025-05-12T21:57:43.151143+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.File.type, value=file
+2025-05-12T21:57:43.151147+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=Logging.Appender.File.cache
+2025-05-12T21:57:43.151152+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.File.filename, value=GalaxyPeer-{pid}.log
+2025-05-12T21:57:43.151166+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.File.truncate, value=false
+2025-05-12T21:57:43.151218+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.Syslog.level, value=DEBUG
+2025-05-12T21:57:43.151227+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.Syslog.type, value=syslog
+2025-05-12T21:57:43.151231+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=Logging.Appender.Syslog.cache
+2025-05-12T21:57:43.151235+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.Syslog.address, value=galaxy-log.gog.com
+2025-05-12T21:57:43.151239+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.Syslog.port, value=514
+2025-05-12T21:57:43.151246+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=name
+2025-05-12T21:57:43.151249+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=version
+2025-05-12T21:57:43.151254+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=AuthWebAPI.host
+2025-05-12T21:57:43.151274+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=MultiplayerWebAPI.host
+2025-05-12T21:57:43.151278+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=UsersWebAPI.host
+2025-05-12T21:57:43.151285+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GameplayWebAPI.host
+2025-05-12T21:57:43.151289+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=NatDetection.host
+2025-05-12T21:57:43.151296+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=RichPresenceWebAPI.host
+2025-05-12T21:57:43.151313+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=Broker.host
+2025-05-12T21:57:43.151325+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=ChatWebAPI.host
+2025-05-12T21:57:43.151340+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=FileStorageWebAPI.host
+2025-05-12T21:57:43.151346+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=FileSharingWebAPI.host
+2025-05-12T21:57:43.151359+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=RemoteConfiguration.host
+2025-05-12T21:57:43.151364+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=CommunicationService.host
+2025-05-12T21:57:43.151377+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=HttpClient.threadCount
+2025-05-12T21:57:43.151381+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=HttpClient.timeout
+2025-05-12T21:57:43.151400+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=HttpClient.threadCount
+2025-05-12T21:57:43.151408+00:00 LENOVO galaxy_peer: DEBUG [GalaxyPeerConfiguration] Overriding default http client configuration with (threadCount=8, timeout=15000 ms, retryTimeoutFactor=1.500000) from properties
+2025-05-12T21:57:43.151413+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=localAppDataPath
+2025-05-12T21:57:43.151417+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GalaxyRakPeer.host
+2025-05-12T21:57:43.151432+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GalaxyRakPeer.port
+2025-05-12T21:57:43.151436+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GalaxyRakPeer.connectionMaxCount
+2025-05-12T21:57:43.151444+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GalaxyRakPeer.timeout
+2025-05-12T21:57:43.151448+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GalaxyRakPeer.threadPriority
+2025-05-12T21:57:43.151463+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=CommunicationService.serviceName
+2025-05-12T21:57:43.151499+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=CommunicationService.retryMode
+2025-05-12T21:57:43.151506+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=CommunicationService.timeout
+2025-05-12T21:57:43.151516+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=localAppDataPath
+2025-05-12T21:57:43.151522+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=InternalThread.timeout
+2025-05-12T21:57:43.151530+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=brokerEnabled
+2025-05-12T21:57:43.151542+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=multithreadingEnabled
+2025-05-12T21:57:43.151550+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=networkingDebugModeEnabled
+2025-05-12T21:57:43.151553+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=remoteConfigurationEnabled
+2025-05-12T21:57:43.151574+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=executablePath
+2025-05-12T21:57:43.151577+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=waitForDebugger
+2025-05-12T21:57:43.151601+00:00 LENOVO galaxy_peer: DEBUG [GenericListenerRegistry] No registered listeners of type 87
+2025-05-12T21:57:43.151608+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::AuthInfoRetriever] Finished
+2025-05-12T21:57:43.151611+00:00 LENOVO galaxy_peer: DEBUG [GenericListenerRegistry] No registered listeners of type 31
+2025-05-12T21:57:43.151643+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::RequestRemoteConfigurationSubOperation] <constructor: timeout=71.250000 s>
+2025-05-12T21:57:43.158670+00:00 LENOVO galaxy_peer: DEBUG [RemoteConfigurationCacheFile] Cached content too old; filePath=C:/Users/Ricky/AppData/Local/GOG.com/Galaxy/Applications/50225266424144145/RemoteConfigCache/remote_config_cache_production_worldwide.json; modificationTime=2025-05-12T19:43:39+00:00
+2025-05-12T21:57:43.158693+00:00 LENOVO galaxy_peer: INFO [RemoteConfigurationCacheClient] Configuration not found in cache, requesting backend; environmentType=0, region=0
+2025-05-12T21:57:43.158696+00:00 LENOVO galaxy_peer: DEBUG [RemoteConfigurationHttpClient] Performing a get remote configuration request
+2025-05-12T21:57:43.159302+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::AuthInfoRetriever] <destructor>: elapsedTime=0.056094 s
+2025-05-12T21:57:43.159318+00:00 LENOVO galaxy_peer: DEBUG [OverlayStateChangeOperation] NotifyFinished
+2025-05-12T21:57:43.160176+00:00 LENOVO galaxy_peer: DEBUG [FacadeScheduler] Scheduling (0x0A4B759C) Received overlay state change: overlayState=4
+GET /components/GOGGalaxySDK/clients/50225266424144145?_gog_request_id=eee187646a2e7c24&component_version=1.133.0&context_region=worldwide HTTP/1.1
+Host: remote-config.gog.com
+Accept-Encoding: gzip
+X-Send-Time: Mon, 12 May 2025 21:57:43 GMT
+X-Schedule-Time: Mon, 12 May 2025 21:57:43 GMT
+X-Operation: 68226ed7634c48a6
+User-Agent: GOGGalaxySDK/1.133.0.0 (Windows_32bit) GOGGalaxyMultiplayerProtocol/2
+Accept: application/json
+
+HTTP/1.1 200 OK
+X-Receive-Time: Mon, 12 May 2025 21:57:43 GMT
+Connection: keep-alive
+Content-Length: 783
+Server: nginx
+Content-Type: application/json
+Expires: Mon, 12 May 2025 21:57:43 GMT
+Content-Encoding: gzip
+Via: 1.1 varnish, 1.1 varnish
+cache-control: max-age=120
+x-origin-age: 0
+x-date: Mon, 12 May 2025 21:57:43 GMT
+Accept-Ranges: bytes
+Age: 0
+Date: Mon, 12 May 2025 21:57:44 GMT
+X-Served-By: cache-fra-eddf8230156-FRA, cache-lga21932-LGA
+X-Cache: MISS, MISS
+X-Cache-Hits: 0, 0
+Vary: Accept-Encoding
+
+{"version":"1.113.0","content":{"broker":{"ssl":true,"host":"notifications-pusher.gog.com","port":443},"auth_web_api":{"ssl":true,"host":"auth.gog.com","port":443},"chat_web_api":{"ssl":true,"host":"chat.gog.com","port":443},"nat_detection":{"ssl":false,"host":"nat-detection.gog.com","port":6001},"users_web_api":{"ssl":true,"host":"users.gog.com","port":443},"gameplay_web_api":{"ssl":true,"host":"gameplay.gog.com","port":443},"multiplayer_web_api":{"ssl":true,"host":"multiplayer.gog.com","port":443},"file_sharing_web_api":{"ssl":true,"host":"galaxy-storage-sharing.gog.com","port":443},"file_storage_web_api":{"ssl":true,"host":"cloudstorage.gog.com","port":443},"remote_configuration":{"ssl":true,"host":"remote-config.gog.com","port":443},"rich_presence_web_api":{"ssl":true,"host":"presence.gog.com","port":443},"broker_enabled":true,"user_overrides":[{"content":{"logging_appenders":[{"port":514,"type":"syslog","cache":true,"level":"debug","address":"galaxy-log.gog.com","throttling":[]}]},"user_ids":["48886621738804252","46987412038869522","48741203422722524","46989291667162334","50161823920112334","51468782887141865"]}],"galaxy_rak_peer":{"host":"0.0.0.0","port":0,"timeout":"30s","thread_priority":"normal","connectivity_mode":"RakNet.default","connection_max_count":255},"internal_thread":{"timeout":"1 ms"},"logging_appenders":[{"port":514,"type":"syslog","cache":true,"level":"info","address":"galaxy-log.gog.com","throttling":[{"dry_run":false,"checking_window":"1 s","stop_blocking_level":45,"start_blocking_level":50},{"dry_run":false,"checking_window":"10 s","stop_blocking_level":185,"start_blocking_level":200},{"dry_run":false,"checking_window":"1 m","stop_blocking_level":245,"start_blocking_level":270}]}],"communication_service":{"ssl":false,"host":"localhost","port":9977,"serviceName":"GalaxyCommunication","plist_file_path":"\/Library\/LaunchAgents\/com.gog.galaxy.commservice.plist","control_file_path":"\/Users\/Shared\/GOG.com\/Galaxy\/GalaxyCommunication.txt"},"multithreading_enabled":true,"networking_debug_mode_enabled":false},"bases":["context_region"]}
+2025-05-12T21:57:43.409073+00:00 LENOVO galaxy_peer: DEBUG [HttpClient] Request finished with code 200, address: 'https://remote-config.gog.com/components/GOGGalaxySDK/clients/50225266424144145?_gog_request_id=eee187646a2e7c24&component_version=1.133.0&context_region=worldwide'
+2025-05-12T21:57:43.409083+00:00 LENOVO galaxy_peer: DEBUG [HttpClient] Request stats: total: 0.250 s, nameLookup: 0.032 s, tcpConnect: 0.015 s, sslHandshake: 0.078 s, requestProcessing: 0.125 s
+2025-05-12T21:57:43.409173+00:00 LENOVO galaxy_peer: DEBUG [RemoteConfigurationHttpClient::GetRemoteConfigurationListener] Succeeded to retrieve remote configuration (version: 1.113.0)
+2025-05-12T21:57:43.409314+00:00 LENOVO galaxy_peer: DEBUG [RemoteConfigurationCacheFile] Updating cache file; filePath=C:/Users/Ricky/AppData/Local/GOG.com/Galaxy/Applications/50225266424144145/RemoteConfigCache/remote_config_cache_production_worldwide.json
+2025-05-12T21:57:43.415184+00:00 LENOVO galaxy_peer: DEBUG [RemoteConfigurationCacheClient] Cache updated; environmentType=0, region=0
+2025-05-12T21:57:43.415201+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::RequestRemoteConfigurationSubOperation] Succeeded to retrieve remote configuration
+2025-05-12T21:57:43.415250+00:00 LENOVO galaxy_peer: DEBUG [Application(galaxy_peer)] Applying remote configuration (version: 1.113.0)
+2025-05-12T21:57:43.415256+00:00 LENOVO galaxy_peer: DEBUG [Application(galaxy_peer)] Applying generic content from remote configuration
+{"auth_web_api":{"host":"auth.gog.com","port":443,"ssl":true},"broker":{"host":"notifications-pusher.gog.com","port":443,"ssl":true},"broker_enabled":true,"chat_web_api":{"host":"chat.gog.com","port":443,"ssl":true},"communication_service":{"control_file_path":"/Users/Shared/GOG.com/Galaxy/GalaxyCommunication.txt","host":"localhost","plist_file_path":"/Library/LaunchAgents/com.gog.galaxy.commservice.plist","port":9977,"serviceName":"GalaxyCommunication","ssl":false},"file_sharing_web_api":{"host":"galaxy-storage-sharing.gog.com","port":443,"ssl":true},"file_storage_web_api":{"host":"cloudstorage.gog.com","port":443,"ssl":true},"galaxy_rak_peer":{"connection_max_count":255,"connectivity_mode":"RakNet.default","host":"0.0.0.0","port":0,"thread_priority":"normal","timeout":"30s"},"gameplay_web_api":{"host":"gameplay.gog.com","port":443,"ssl":true},"internal_thread":{"timeout":"1 ms"},"logging_appenders":[{"address":"galaxy-log.gog.com","cache":true,"level":"info","port":514,"throttling":[{"checking_window":"1 s","dry_run":false,"start_blocking_level":50,"stop_blocking_level":45},{"checking_window":"10 s","dry_run":false,"start_blocking_level":200,"stop_blocking_level":185},{"checking_window":"1 m","dry_run":false,"start_blocking_level":270,"stop_blocking_level":245}],"type":"syslog"}],"multiplayer_web_api":{"host":"multiplayer.gog.com","port":443,"ssl":true},"multithreading_enabled":true,"nat_detection":{"host":"nat-detection.gog.com","port":6001,"ssl":false},"networking_debug_mode_enabled":false,"remote_configuration":{"host":"remote-config.gog.com","port":443,"ssl":true},"rich_presence_web_api":{"host":"presence.gog.com","port":443,"ssl":true},"user_overrides":[{"content":{"logging_appenders":[{"address":"galaxy-log.gog.com","cache":true,"level":"debug","port":514,"throttling":[],"type":"syslog"}]},"user_ids":["48886621738804252","46987412038869522","48741203422722524","46989291667162334","50161823920112334","51468782887141865"]}],"users_web_api":{"host":"users.gog.com","port":443,"ssl":true}}
+2025-05-12T21:57:43.415784+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint auth_web_api with auth.gog.com:443
+2025-05-12T21:57:43.415795+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint multiplayer_web_api with multiplayer.gog.com:443
+2025-05-12T21:57:43.415799+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint users_web_api with users.gog.com:443
+2025-05-12T21:57:43.415803+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint gameplay_web_api with gameplay.gog.com:443
+2025-05-12T21:57:43.415808+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint nat_detection with nat-detection.gog.com:6001
+2025-05-12T21:57:43.415811+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint rich_presence_web_api with presence.gog.com:443
+2025-05-12T21:57:43.415833+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint broker with notifications-pusher.gog.com:443
+2025-05-12T21:57:43.415841+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint chat_web_api with chat.gog.com:443
+2025-05-12T21:57:43.415848+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint file_storage_web_api with cloudstorage.gog.com:443
+2025-05-12T21:57:43.415852+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint file_sharing_web_api with galaxy-storage-sharing.gog.com:443
+2025-05-12T21:57:43.415855+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint remote_configuration with remote-config.gog.com:443
+2025-05-12T21:57:43.415864+00:00 LENOVO galaxy_peer: DEBUG [ConfigEndpointProvider] Overriding endpoint communication_service with localhost:9977
+2025-05-12T21:57:43.421266+00:00 LENOVO galaxy_peer: DEBUG [GalaxyPeerConfiguration] Overriding default http client configuration with (threadCount=8, timeout=15000 ms, retryTimeoutFactor=1.500000) from properties
+2025-05-12T21:57:43.421313+00:00 LENOVO galaxy_peer: INFO [GalaxyPeerConfiguration] Overriding default communication service descriptor with 'GalaxyCommunication:/Library/LaunchAgents/com.gog.galaxy.commservice.plist:/Users/Shared/GOG.com/Galaxy/GalaxyCommunication.txt' from properties
+2025-05-12T21:57:43.421327+00:00 LENOVO galaxy_peer: DEBUG [GalaxyPeerConfiguration] Overriding internal thread sleep time with '1' ms from config file
+2025-05-12T21:57:43.421330+00:00 LENOVO galaxy_peer: DEBUG [GalaxyPeerConfiguration] Overriding broker_enabled with '1' from config file
+2025-05-12T21:57:43.421333+00:00 LENOVO galaxy_peer: DEBUG [GalaxyPeerConfiguration] Overriding multithreading_enabled with '1' from config file
+2025-05-12T21:57:43.421336+00:00 LENOVO galaxy_peer: DEBUG [GalaxyPeerConfiguration] Overriding networking_debug_mode_enabled with '0' from config file
+2025-05-12T21:57:43.421348+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.appenders, value=File, Syslog
+2025-05-12T21:57:43.421361+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.File.level, value=DEBUG
+2025-05-12T21:57:43.421365+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.File.type, value=file
+2025-05-12T21:57:43.421369+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=Logging.Appender.File.cache
+2025-05-12T21:57:43.421372+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.File.filename, value=GalaxyPeer-{pid}.log
+2025-05-12T21:57:43.421376+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.File.truncate, value=false
+2025-05-12T21:57:43.421397+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.Syslog.level, value=DEBUG
+2025-05-12T21:57:43.421401+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.Syslog.type, value=syslog
+2025-05-12T21:57:43.421404+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=Logging.Appender.Syslog.cache
+2025-05-12T21:57:43.421408+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.Syslog.address, value=galaxy-log.gog.com
+2025-05-12T21:57:43.421411+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Retrieved entry from "DEFAULT": key=Logging.Appender.Syslog.port, value=514
+2025-05-12T21:57:43.421418+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=name
+2025-05-12T21:57:43.421420+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=version
+2025-05-12T21:57:43.421424+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=AuthWebAPI.host
+2025-05-12T21:57:43.421427+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=MultiplayerWebAPI.host
+2025-05-12T21:57:43.421430+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=UsersWebAPI.host
+2025-05-12T21:57:43.421441+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GameplayWebAPI.host
+2025-05-12T21:57:43.421445+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=NatDetection.host
+2025-05-12T21:57:43.421448+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=RichPresenceWebAPI.host
+2025-05-12T21:57:43.421452+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=Broker.host
+2025-05-12T21:57:43.421455+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=ChatWebAPI.host
+2025-05-12T21:57:43.421458+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=FileStorageWebAPI.host
+2025-05-12T21:57:43.421461+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=FileSharingWebAPI.host
+2025-05-12T21:57:43.421465+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=RemoteConfiguration.host
+2025-05-12T21:57:43.421468+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=CommunicationService.host
+2025-05-12T21:57:43.421471+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=HttpClient.threadCount
+2025-05-12T21:57:43.421474+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=HttpClient.timeout
+2025-05-12T21:57:43.421477+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=HttpClient.threadCount
+2025-05-12T21:57:43.421483+00:00 LENOVO galaxy_peer: DEBUG [GalaxyPeerConfiguration] Overriding default http client configuration with (threadCount=8, timeout=15000 ms, retryTimeoutFactor=1.500000) from properties
+2025-05-12T21:57:43.421487+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=localAppDataPath
+2025-05-12T21:57:43.421490+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GalaxyRakPeer.host
+2025-05-12T21:57:43.421493+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GalaxyRakPeer.port
+2025-05-12T21:57:43.421497+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GalaxyRakPeer.connectionMaxCount
+2025-05-12T21:57:43.421500+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GalaxyRakPeer.timeout
+2025-05-12T21:57:43.421503+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=GalaxyRakPeer.threadPriority
+2025-05-12T21:57:43.421507+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=CommunicationService.serviceName
+2025-05-12T21:57:43.421511+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=CommunicationService.retryMode
+2025-05-12T21:57:43.421514+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=CommunicationService.timeout
+2025-05-12T21:57:43.421518+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=localAppDataPath
+2025-05-12T21:57:43.421521+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=InternalThread.timeout
+2025-05-12T21:57:43.421524+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=brokerEnabled
+2025-05-12T21:57:43.421527+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=multithreadingEnabled
+2025-05-12T21:57:43.421531+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=networkingDebugModeEnabled
+2025-05-12T21:57:43.421534+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=remoteConfigurationEnabled
+2025-05-12T21:57:43.421537+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=executablePath
+2025-05-12T21:57:43.421540+00:00 LENOVO galaxy_peer: DEBUG [ConfigurationParser] Failed to retrieve entry from "DEFAULT": key=waitForDebugger
+2025-05-12T21:57:43.426859+00:00 LENOVO galaxy_peer: DEBUG [GenericListenerRegistry] No registered listeners of type 87
+2025-05-12T21:57:43.426866+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::RequestRemoteConfigurationSubOperation] peerContext reconfiguration
+2025-05-12T21:57:43.428032+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::RequestRemoteConfigurationSubOperation] Finished
+2025-05-12T21:57:43.433882+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::ClientLogger] <constructor: timeout=71.250000 s>
+2025-05-12T21:57:43.433894+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Registering listener: type=0, obj=0A259078
+2025-05-12T21:57:43.433899+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::ClientLogger] ClientLogger
+2025-05-12T21:57:43.433909+00:00 LENOVO galaxy_peer: DEBUG [AuthenticatedHttpClient] Performing a sign in request: refreshToken=(slX1..., 32 chars) withoutNewSessionNotification=1
+2025-05-12T21:57:43.438522+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::RequestRemoteConfigurationSubOperation] <destructor>: elapsedTime=0.286880 s
+2025-05-12T21:57:44.737091+00:00 LENOVO galaxy_peer: DEBUG [GalaxyFacade] Previous facade ProcessData call was performed 1.599099 s ago, threshold 1.000000 s
+2025-05-12T21:57:44.737124+00:00 LENOVO galaxy_peer: INFO [FacadeScheduler] Running (0x0A4B759C) Received overlay state change: overlayState=4
+2025-05-12T21:57:44.737727+00:00 LENOVO galaxy_peer: DEBUG [GenericListenerRegistry] No registered listeners of type 41
+2025-05-12T21:57:45.649452+00:00 LENOVO galaxy_peer: WARNING [HttpClient] Request failed with CURL result 7, curlResultStr 'Couldn't connect to server', address 'https://auth.gog.com/token'
+2025-05-12T21:57:45.649499+00:00 LENOVO galaxy_peer: WARNING [HttpClient] Request stats: total: 1.218 s, nameLookup: 0.015 s, tcpConnect: -0.015 s, sslHandshake: 0.000 s, requestProcessing: 1.218 s
+2025-05-12T21:57:45.649525+00:00 LENOVO galaxy_peer: DEBUG [HttpClient] Scheduling a request for resending due to an error
+2025-05-12T21:57:47.851972+00:00 LENOVO galaxy_peer: WARNING [HttpClient] Request failed with CURL result 7, curlResultStr 'Couldn't connect to server', address 'https://auth.gog.com/token'
+2025-05-12T21:57:47.851995+00:00 LENOVO galaxy_peer: WARNING [HttpClient] Request stats: total: 1.204 s, nameLookup: 0.000 s, tcpConnect: -0.000 s, sslHandshake: 0.000 s, requestProcessing: 1.204 s
+2025-05-12T21:57:47.852006+00:00 LENOVO galaxy_peer: ERROR [AuthenticatedHttpClient::GetAccessTokenListener] Got an error on token request
+2025-05-12T21:57:47.852013+00:00 LENOVO galaxy_peer: WARNING [AuthenticatedHttpClient::GetAccessTokenListener] Failed to authenticate: no response
+2025-05-12T21:57:47.852030+00:00 LENOVO galaxy_peer: WARNING [SignInWithGalaxyOperation::ClientLogger] OnAuthFailureConnectionFailure
+2025-05-12T21:57:47.852032+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::ClientLogger] Error occured
+2025-05-12T21:57:47.852942+00:00 LENOVO galaxy_peer: ERROR [SignInWithGalaxyOperation] NotifyError
+2025-05-12T21:57:47.853043+00:00 LENOVO galaxy_peer: DEBUG [FacadeScheduler] Scheduling (0x1561FD0C) AuthFailureFacadeEvent: reason=3, asyncOperations=[]
+2025-05-12T21:57:47.853057+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=0, obj=0A259078
+2025-05-12T21:57:47.853063+00:00 LENOVO galaxy_peer: DEBUG [SignInWithGalaxyOperation::ClientLogger] <destructor>: elapsedTime=4.419186 s
+2025-05-12T21:57:47.857719+00:00 LENOVO galaxy_peer: INFO [FacadeScheduler] Running (0x1561FD0C) AuthFailureFacadeEvent: reason=3, asyncOperations=[]
+2025-05-12T21:57:52.207804+00:00 LENOVO galaxy_peer: DEBUG [AppsLogic] Checking presence of DLC: productID=1751126893
+2025-05-12T21:57:52.207831+00:00 LENOVO galaxy_peer: DEBUG [AppsLogic] Checking presence of the minimanifest: productID=1751126893
+2025-05-12T21:57:52.208024+00:00 LENOVO galaxy_peer: DEBUG [AppsLogic] Presence of minimanifest not confirmed: failed to locate minimanifest file; productID=1751126893
+2025-05-12T21:57:52.208033+00:00 LENOVO galaxy_peer: DEBUG [AppsLogic] Failed to find minimanifest: productID=1751126893
+2025-05-12T21:57:52.208606+00:00 LENOVO galaxy_peer: DEBUG [AppsLogic] Checking presence of DLC: productID=1281799802
+2025-05-12T21:57:52.208618+00:00 LENOVO galaxy_peer: DEBUG [AppsLogic] Checking presence of the minimanifest: productID=1281799802
+2025-05-12T21:57:52.208766+00:00 LENOVO galaxy_peer: DEBUG [AppsLogic] Presence of minimanifest not confirmed: failed to locate minimanifest file; productID=1281799802
+2025-05-12T21:57:52.208774+00:00 LENOVO galaxy_peer: DEBUG [AppsLogic] Failed to find minimanifest: productID=1281799802
+2025-05-12T21:57:56.897924+00:00 LENOVO galaxy_peer: DEBUG [FacadeRegistrar] Unregistering listener: type=7, obj=0A23F800
+2025-05-12T21:57:56.899514+00:00 LENOVO galaxy_peer: DEBUG [FacadeRegistrar] Unregistering listener: type=60, obj=0A44A708
+2025-05-12T21:57:56.901194+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=33, obj=1394F7D8
+2025-05-12T21:57:56.901245+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=16, obj=1394F7CC
+2025-05-12T21:57:56.901260+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=65, obj=1394F7C0
+2025-05-12T21:57:56.901277+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=3, obj=1394F8B4
+2025-05-12T21:57:56.901280+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=21, obj=1394F8A8
+2025-05-12T21:57:56.901285+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=2, obj=1394F8EC
+2025-05-12T21:57:56.901289+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=25, obj=1394F870
+2025-05-12T21:57:56.901293+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=22, obj=1394F864
+2025-05-12T21:57:56.901313+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=63, obj=1394F82C
+2025-05-12T21:57:56.901322+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=33, obj=1394F820
+2025-05-12T21:57:56.901326+00:00 LENOVO galaxy_peer: DEBUG [InternalRegistrar] Unregistering listener: type=16, obj=1394F814
+2025-05-12T21:57:56.907038+00:00 LENOVO galaxy_peer: INFO [TcpSocket(127.0.0.1:9977)] Closing socket
+2025-05-12T21:57:56.907159+00:00 LENOVO galaxy_peer: DEBUG [GogPbConnection(CommunicationService)::TransportListener] Transport connection closed; protocol connection not present
+2025-05-12T21:57:56.907176+00:00 LENOVO galaxy_peer: DEBUG [TcpSocket(127.0.0.1:9977)] destructor
+2025-05-12T21:57:56.910363+00:00 LENOVO galaxy_peer: DEBUG [InternalThread] end
