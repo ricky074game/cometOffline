@@ -2,7 +2,7 @@ use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 
 use api::gog::overlay::OverlayPeerMessage;
-use clap::{Parser, Subcommand};
+use clap::{Parser};
 use env_logger::{Builder, Env, Target};
 use futures_util::future::join_all;
 use log::{error, info, warn};
@@ -15,77 +15,24 @@ mod api;
 mod config;
 mod constants;
 mod db;
-mod import_parsers;
 mod paths;
 mod proto;
 
 use crate::api::notification_pusher::PusherEvent;
 use crate::api::structs::{Token, UserInfo};
 use api::notification_pusher::NotificationPusherClient;
+use rand::{distributions::Alphanumeric, Rng};
 
 static CERT: &[u8] = include_bytes!("../external/rootCA.pem");
 
-#[derive(Subcommand, Debug)]
-enum SubCommand {
-    #[command(about = "Preload achievements and statistics for offline usage")]
-    Preload {
-        client_id: String,
-        client_secret: String,
-    },
 
-    #[command(about = "Download overlay")]
-    Overlay {
-        #[arg(long, help = "Force the download of non-native overlay")]
-        force: bool,
-    },
-}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
-    #[arg(long, help = "Provide access token (for getting user data)")]
-    access_token: Option<String>,
-    #[arg(long, help = "Provide refresh token (for creating game sessions)")]
-    refresh_token: Option<String>,
-    #[arg(long, help = "Galaxy user id from /userData.json")]
-    user_id: Option<String>,
     #[arg(long, help = "User name")]
     username: String,
-    #[arg(
-        long = "from-heroic",
-        help = "Load tokens from heroic",
-        global = true,
-        group = "import"
-    )]
-    heroic: bool,
-    #[arg(
-        long = "from-lutris",
-        help = "Load tokens from lutris",
-        global = true,
-        group = "import"
-    )]
-    #[cfg(target_os = "linux")]
-    lutris: bool,
 
-    #[arg(
-        long = "from-wyvern",
-        help = "Load tokens from wyvern",
-        global = true,
-        group = "import"
-    )]
-    #[cfg(target_os = "linux")]
-    wyvern: bool,
-
-    #[arg(
-        short,
-        long,
-        global = true,
-        help = "Make comet quit after every client disconnects. Use COMET_IDLE_WAIT environment variable to control the wait time (seconds)"
-    )]
-    quit: bool,
-
-    #[command(subcommand)]
-    subcommand: Option<SubCommand>,
 }
 
 lazy_static! {
@@ -93,6 +40,14 @@ lazy_static! {
     static ref LOCALE: String = sys_locale::get_locale()
         .and_then(|x| if !x.contains("-") { None } else { Some(x) })
         .unwrap_or_else(|| String::from("en-US"));
+}
+
+fn generate_random_string(len: usize) -> String {
+    rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(len)
+        .map(char::from)
+        .collect()
 }
 
 #[tokio::main]
@@ -107,8 +62,9 @@ async fn main() {
     log::debug!("Configuration file {:?}", *CONFIG);
     log::info!("Preferred language: {}", LOCALE.as_str());
 
-    let (access_token, refresh_token, galaxy_user_id) =
-        import_parsers::handle_credentials_import(&args);
+    let access_token = generate_random_string(32);
+    let refresh_token = generate_random_string(32); 
+    let galaxy_user_id = generate_random_string(16); 
 
     let certificate = reqwest::tls::Certificate::from_pem(CERT).unwrap();
     let reqwest_client = Client::builder()
@@ -124,11 +80,11 @@ async fn main() {
 
     let token_store: constants::TokenStorage = Arc::new(Mutex::new(HashMap::new()));
     let galaxy_token = Token::new(access_token.clone(), refresh_token.clone());
-    let mut store_lock = token_store.lock().await;
+    let mut store_lock: tokio::sync::MutexGuard<'_, HashMap<String, Token>> = token_store.lock().await;
     store_lock.insert(String::from(constants::GALAXY_CLIENT_ID), galaxy_token);
     drop(store_lock);
 
-    let client_clone = reqwest_client.clone();
+    let client_clone: Client = reqwest_client.clone();
     tokio::spawn(async move {
         let mut retries = 0;
         loop {
@@ -168,119 +124,6 @@ async fn main() {
             }
         }
     });
-
-    if let Some(subcommand) = args.subcommand {
-        match subcommand {
-            SubCommand::Preload {
-                client_id,
-                client_secret,
-            } => {
-                let database = db::gameplay::setup_connection(&client_id, &galaxy_user_id)
-                    .await
-                    .expect("Failed to setup the database");
-
-                if !db::gameplay::has_achievements(&database).await
-                    || !db::gameplay::has_statistics(&database).await
-                {
-                    let mut connection = database.acquire().await.unwrap();
-                    sqlx::query(db::gameplay::SETUP_QUERY)
-                        .execute(&mut *connection)
-                        .await
-                        .expect("Failed to setup the database");
-                    drop(connection);
-
-                    let new_token = api::gog::users::get_token_for(
-                        &client_id,
-                        &client_secret,
-                        &refresh_token,
-                        &reqwest_client,
-                        false,
-                    )
-                    .await
-                    .expect("Failed to obtain credentials");
-
-                    let mut tokens = token_store.lock().await;
-                    tokens.insert(client_id.clone(), new_token);
-                    drop(tokens);
-
-                    let new_achievements = api::gog::achievements::fetch_achievements(
-                        &token_store,
-                        &client_id,
-                        &galaxy_user_id,
-                        &reqwest_client,
-                    )
-                    .await;
-                    let new_stats = api::gog::stats::fetch_stats(
-                        &token_store,
-                        &client_id,
-                        &galaxy_user_id,
-                        &reqwest_client,
-                    )
-                    .await;
-
-                    if let Ok((achievements, mode)) = new_achievements {
-                        db::gameplay::set_achievements(database.clone(), &achievements, &mode)
-                            .await
-                            .expect("Failed to write to the database");
-                        info!("Got achievements");
-                    } else {
-                        error!("Failed to fetch achievements");
-                    }
-                    if let Ok(stats) = new_stats {
-                        db::gameplay::set_statistics(database.clone(), &stats)
-                            .await
-                            .expect("Failed to write to the database");
-                        info!("Got stats");
-                    } else {
-                        error!("Failed to fetch stats")
-                    }
-                } else {
-                    info!("Already in database")
-                }
-            }
-            SubCommand::Overlay { force } => {
-                #[cfg(target_os = "linux")]
-                if !force {
-                    error!("There is no linux native overlay, to download a windows version use --force");
-                    return;
-                }
-                #[cfg(not(target_os = "linux"))]
-                if force {
-                    warn!("The force flag has no effect on this platform");
-                }
-
-                let web = api::gog::components::get_component(
-                    &reqwest_client,
-                    paths::REDISTS_STORAGE.clone(),
-                    api::gog::components::Platform::Windows,
-                    api::gog::components::Component::Web,
-                )
-                .await;
-                let overlay = api::gog::components::get_component(
-                    &reqwest_client,
-                    paths::REDISTS_STORAGE.clone(),
-                    #[cfg(not(target_os = "macos"))]
-                    api::gog::components::Platform::Windows,
-                    #[cfg(target_os = "macos")]
-                    api::gog::components::Platform::Mac,
-                    api::gog::components::Component::Overlay,
-                )
-                .await;
-
-                if let Err(err) = web {
-                    error!("Unexpected error occured when downloading web component {err}");
-                }
-
-                if let Err(err) = overlay {
-                    error!("Unexpected error occured when downloading overlay component {err}");
-                }
-
-                log::info!("Done");
-            }
-        }
-
-        return;
-    }
 
     let listener = TcpListener::bind("127.0.0.1:9977")
         .await
@@ -355,7 +198,6 @@ async fn main() {
         let client_exit = client_exit.clone();
         let achievement_unlock_event = overlay_ipc.clone();
         active_clients += 1;
-        ever_connected = args.quit;
         handlers.push(tokio::spawn(async move {
             api::handlers::entry_point(
                 socket,

@@ -9,7 +9,7 @@ pub async fn get_token_for(
     session: &Client,
     openid: bool,
 ) -> Result<Token, Error> {
-    let mut url = reqwest::Url::parse(
+    let mut url: reqwest::Url = reqwest::Url::parse(
         "https://auth.gog.com/token?grant_type=refresh_token&without_new_session=1",
     )
     .unwrap();
