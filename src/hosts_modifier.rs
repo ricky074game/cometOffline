@@ -1,7 +1,7 @@
 use std::io;
 use tokio::fs;
 use tokio::io::{AsyncBufReadExt, BufReader}; 
-use log::{info, warn, error};
+use log::{info, warn, error, debug};
 
 #[cfg(target_os = "windows")]
 const HOSTS_FILE_PATH: &str = "C:\\Windows\\System32\\drivers\\etc\\hosts";
@@ -31,7 +31,7 @@ async fn domain_entry_exists_in_reader(mut reader: impl AsyncBufReadExt + Unpin,
 
 
 pub async fn add_redirect_entry() -> io::Result<()> {
-    info!("[HOSTS_MODIFIER] Attempting to add redirects for {:?} to {} in {}", REDIRECT_DOMAINS, REDIRECT_IP, HOSTS_FILE_PATH);
+    debug!("[HOSTS_MODIFIER] Attempting to add redirects for {:?} to {} in {}", REDIRECT_DOMAINS, REDIRECT_IP, HOSTS_FILE_PATH);
     warn!("[HOSTS_MODIFIER] This operation requires Administrator/root privileges.");
 
     let mut entries_added_count = 0;
@@ -42,7 +42,7 @@ pub async fn add_redirect_entry() -> io::Result<()> {
             Ok(file_for_check) => {
                 let reader_for_check = BufReader::new(file_for_check);
                 if domain_entry_exists_in_reader(reader_for_check, domain).await? {
-                    info!("[HOSTS_MODIFIER] Redirect entry for {} already exists. No action taken.", domain);
+                    debug!("[HOSTS_MODIFIER] Redirect entry for {} already exists. No action taken.", domain);
                     entries_already_exist_count += 1;
                     continue; // Move to the next domain
                 }
@@ -78,31 +78,31 @@ pub async fn add_redirect_entry() -> io::Result<()> {
             error!("[HOSTS_MODIFIER] FAILED to write redirect entry for {} to hosts file: {}. Check permissions.", domain, e);
             return Err(e);
         }
-        info!("[HOSTS_MODIFIER] Successfully added redirect: {}", entry_to_add.trim());
+        debug!("[HOSTS_MODIFIER] Successfully added redirect: {}", entry_to_add.trim());
         entries_added_count += 1;
     }
 
     if entries_added_count > 0 {
-        info!("[HOSTS_MODIFIER] Finished adding {} new redirect entries.", entries_added_count);
+        debug!("[HOSTS_MODIFIER] Finished adding {} new redirect entries.", entries_added_count);
     }
     if entries_already_exist_count > 0 {
-        info!("[HOSTS_MODIFIER] {} redirect entries already existed.", entries_already_exist_count);
+        debug!("[HOSTS_MODIFIER] {} redirect entries already existed.", entries_already_exist_count);
     }
     if entries_added_count == 0 && entries_already_exist_count == REDIRECT_DOMAINS.len() {
-        info!("[HOSTS_MODIFIER] All redirect entries already existed. No changes made.");
+        debug!("[HOSTS_MODIFIER] All redirect entries already existed. No changes made.");
     }
 
     Ok(())
 }
 
 pub async fn remove_redirect_entry() -> io::Result<()> {
-    info!("[HOSTS_MODIFIER] Attempting to remove redirects for {:?} from {}", REDIRECT_DOMAINS, HOSTS_FILE_PATH);
+    debug!("[HOSTS_MODIFIER] Attempting to remove redirects for {:?} from {}", REDIRECT_DOMAINS, HOSTS_FILE_PATH);
     warn!("[HOSTS_MODIFIER] This operation requires Administrator/root privileges.");
 
     let current_content = match fs::read_to_string(HOSTS_FILE_PATH).await {
         Ok(content) => content,
         Err(e) if e.kind() == io::ErrorKind::NotFound => {
-            info!("[HOSTS_MODIFIER] Hosts file not found at {}. Nothing to remove.", HOSTS_FILE_PATH);
+            debug!("[HOSTS_MODIFIER] Hosts file not found at {}. Nothing to remove.", HOSTS_FILE_PATH);
             return Ok(());
         }
         Err(e) => {
@@ -126,7 +126,7 @@ pub async fn remove_redirect_entry() -> io::Result<()> {
                (line_trim_lower.starts_with(&format!("{} {}", REDIRECT_IP, domain).to_lowercase()) && line_trim_lower.contains(&COMMENT_TAG.to_lowercase())) {
                 total_removed_count += 1;
                 keep_line = false;
-                info!("[HOSTS_MODIFIER] Marking line for removal: {}", line);
+                debug!("[HOSTS_MODIFIER] Marking line for removal: {}", line);
                 break; // Found a match for this line, no need to check other domains for the same line
             }
         }
@@ -153,9 +153,9 @@ pub async fn remove_redirect_entry() -> io::Result<()> {
             error!("[HOSTS_MODIFIER] FAILED to write updated hosts file after removing entries: {}. Check permissions.", e);
             return Err(e);
         }
-        info!("[HOSTS_MODIFIER] Successfully removed {} redirect entr(y/ies) for {:?}.", total_removed_count, REDIRECT_DOMAINS);
+        debug!("[HOSTS_MODIFIER] Successfully removed {} redirect entr(y/ies) for {:?}.", total_removed_count, REDIRECT_DOMAINS);
     } else {
-        info!("[HOSTS_MODIFIER] No redirect entries found for {:?} with the specific tag. No action taken.", REDIRECT_DOMAINS);
+        debug!("[HOSTS_MODIFIER] No redirect entries found for {:?} with the specific tag. No action taken.", REDIRECT_DOMAINS);
     }
     Ok(())
 }

@@ -6,7 +6,7 @@ use axum::extract::Path;
 use clap::{Parser};
 use env_logger::{Builder, Env, Target};
 use futures_util::future::join_all;
-use log::{error, info};
+use log::{debug, error, info};
 use reqwest::Client;
 use serde_json::{json, Value};
 use tokio::net::TcpListener;
@@ -56,20 +56,18 @@ struct Args {
     #[arg(long, help = "User name")]
     username: String,
 
+    #[arg(short, long, help = "Enable verbose logging")]
+    verbose: bool,
 }
 
 #[derive(Serialize, Debug)]
 struct GogUser {
     id: String,
     username: String,
-    // Add other fields the client might expect, e.g., avatar_url, etc.
-    // For now, keeping it simple.
 }
 
 #[derive(Serialize, Debug)]
 struct GogUsersResponse {
-    // The real API returns an array of users directly, not nested.
-    // Let's assume it's an array of GogUser.
     users: Vec<GogUser>,
 }
 
@@ -119,7 +117,7 @@ async fn handle_gog_token_request(
     State(app_state): State<AppState>, // Extract AppState
 ) -> Json<GogAuthTokenResponse> {
 
-    info!("[HTTP SERVER] Received /token request: {:?}", params);
+    debug!("[HTTP SERVER] Received /token request: {:?}", params);
 
     let client_id = params.client_id.unwrap_or_else(|| "unknown_client_id".to_string());
     let new_access_token = generate_random_string(192);
@@ -128,7 +126,7 @@ async fn handle_gog_token_request(
     let user_id_for_response = app_state.user_id;
 
 
-    info!("[HTTP SERVER] Responding to /token for client_id {}: new_access_token: {}, new_refresh_token: {}",
+    debug!("[HTTP SERVER] Responding to /token for client_id {}: new_access_token: {}, new_refresh_token: {}",
         client_id, new_access_token, new_refresh_token
     );
 
@@ -147,8 +145,8 @@ async fn handle_gog_users_request(
     Query(params): Query<HashMap<String, String>>,
     headers: HeaderMap,
     Host(host): Host,
-) -> Result<Json<serde_json::Value>, StatusCode> { // <-- Change return type
-    info!("[HTTP SERVER] Received /users request on host {}: {:?}, Headers: {:?}", host, params, headers);
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    debug!("[HTTP SERVER] Received /users request on host {}: {:?}, Headers: {:?}", host, params, headers);
 
     if !headers.contains_key(header::AUTHORIZATION) {
         error!("[HTTP SERVER] /users request missing Authorization header.");
@@ -194,7 +192,6 @@ async fn handle_gog_friends_request(
 async fn handle_gog_presence_status(
     Query(params): Query<HashMap<String, String>>,
 ) -> Json<serde_json::Value> {
-    // Example: always return "offline" for all requested user_ids
     let user_ids = params.get("user_ids")
         .map(|ids| ids.split(',').collect::<Vec<_>>())
         .unwrap_or_default();
@@ -220,7 +217,8 @@ async fn handle_presence_status(
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    let env = Env::new().filter_or("COMET_LOG", "info");
+    let log_level = if args.verbose { "debug" } else { "info" };
+    let env = Env::default().filter_or("COMET_LOG", log_level);
     Builder::from_env(env)
         .target(Target::Stderr)
         .filter_module("h2::codec", log::LevelFilter::Off)
@@ -264,9 +262,7 @@ async fn main() {
     let http_server_shutdown_token_for_axum = shutdown_token.clone();
     let tcp_server_shutdown_token = shutdown_token.clone();
     let hosts_cleanup_shutdown_token = shutdown_token.clone();
-
-    let http_server_shutdown_token = shutdown_token.clone();
-    
+        
     // Add hosts file
     if let Err(e) = hosts_modifier::add_redirect_entry().await {
         error!("[MAIN] Failed to add hosts file entry: {}. Ensure running as admin. HTTP redirection for auth.gog.com might not work.", e);
@@ -311,7 +307,7 @@ async fn main() {
             biased;
             server_result = server_future => {
                 match server_result {
-                    Ok(_) => info!("[HTTP SERVER] Server completed successfully."), // This case implies the server stopped on its own.
+                    Ok(_) => info!("[HTTP SERVER] Server completed successfully."),
                     Err(e) => error!("[HTTP SERVER] Server error: {}", e),
                 }
             }
