@@ -3,84 +3,100 @@ use tokio::fs;
 use tokio::io::{AsyncBufReadExt, BufReader}; 
 use log::{info, warn, error};
 
-// --- Configuration ---
-// Define the hosts file path based on the target OS
 #[cfg(target_os = "windows")]
 const HOSTS_FILE_PATH: &str = "C:\\Windows\\System32\\drivers\\etc\\hosts";
 
-const REDIRECT_DOMAIN: &str = "auth.gog.com";
+const REDIRECT_DOMAINS: &[&str] = &["auth.gog.com", "users.gog.com", "presence.gog.com"]; // Changed to an array
 const REDIRECT_IP: &str = "127.0.0.1";
 const COMMENT_TAG: &str = "# Added by CometOffline";
 
-fn get_redirect_entry_line() -> String {
-    format!("{} {} {}", REDIRECT_IP, REDIRECT_DOMAIN, COMMENT_TAG)
+fn get_redirect_entry_line(domain: &str) -> String { // Added domain parameter
+    format!("{} {} {}", REDIRECT_IP, domain, COMMENT_TAG)
 }
 
-async fn entry_exists_in_reader(mut reader: impl AsyncBufReadExt + Unpin) -> io::Result<bool> {
+async fn domain_entry_exists_in_reader(mut reader: impl AsyncBufReadExt + Unpin, domain: &str) -> io::Result<bool> { // Renamed and added domain parameter
     let mut lines = reader.lines();
-    let full_entry_line_trim = get_redirect_entry_line().trim().to_lowercase();
+    let specific_redirect_entry = get_redirect_entry_line(domain);
+    let full_entry_line_trim = specific_redirect_entry.trim().to_lowercase();
+
     while let Some(line_result) = lines.next_line().await? {
         let line_trim_lower = line_result.trim().to_lowercase();
-        // Check for the exact line or a line starting with the IP and domain and containing the tag
         if line_trim_lower == full_entry_line_trim ||
-           (line_trim_lower.starts_with(&format!("{} {}", REDIRECT_IP, REDIRECT_DOMAIN).to_lowercase()) && line_trim_lower.contains(&COMMENT_TAG.to_lowercase())) {
+           (line_trim_lower.starts_with(&format!("{} {}", REDIRECT_IP, domain).to_lowercase()) && line_trim_lower.contains(&COMMENT_TAG.to_lowercase())) {
             return Ok(true);
         }
     }
     Ok(false)
 }
 
-/// Adds the redirect entry to the system's hosts file.
-/// Requires administrator/root privileges.
+
 pub async fn add_redirect_entry() -> io::Result<()> {
-    info!("[HOSTS_MODIFIER] Attempting to add redirect for {} to {} in {}", REDIRECT_DOMAIN, REDIRECT_IP, HOSTS_FILE_PATH);
+    info!("[HOSTS_MODIFIER] Attempting to add redirects for {:?} to {} in {}", REDIRECT_DOMAINS, REDIRECT_IP, HOSTS_FILE_PATH);
     warn!("[HOSTS_MODIFIER] This operation requires Administrator/root privileges.");
 
-    match fs::File::open(HOSTS_FILE_PATH).await {
-        Ok(file_for_check) => {
-            let reader_for_check = BufReader::new(file_for_check);
-            if entry_exists_in_reader(reader_for_check).await? {
-                info!("[HOSTS_MODIFIER] Redirect entry for {} already exists. No action taken.", REDIRECT_DOMAIN);
-                return Ok(());
+    let mut entries_added_count = 0;
+    let mut entries_already_exist_count = 0;
+
+    for &domain in REDIRECT_DOMAINS {
+        match fs::File::open(HOSTS_FILE_PATH).await {
+            Ok(file_for_check) => {
+                let reader_for_check = BufReader::new(file_for_check);
+                if domain_entry_exists_in_reader(reader_for_check, domain).await? {
+                    info!("[HOSTS_MODIFIER] Redirect entry for {} already exists. No action taken.", domain);
+                    entries_already_exist_count += 1;
+                    continue; // Move to the next domain
+                }
+            }
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {
+                warn!("[HOSTS_MODIFIER] Hosts file not found at {}. Cannot add entry for {}.", HOSTS_FILE_PATH, domain);
+                return Err(e); // If hosts file not found, can't proceed
+            }
+            Err(e) => {
+                error!("[HOSTS_MODIFIER] Error opening hosts file for check for domain {}: {}", domain, e);
+                return Err(e); // Propagate other errors
             }
         }
-        Err(e) if e.kind() == io::ErrorKind::NotFound => {
-            warn!("[HOSTS_MODIFIER] Hosts file not found at {}. Cannot add entry.", HOSTS_FILE_PATH);
+
+        // Read current content for each domain to ensure it's up-to-date if multiple entries are added
+        let mut current_content = match fs::read_to_string(HOSTS_FILE_PATH).await {
+            Ok(content) => content,
+            Err(e) => {
+                error!("[HOSTS_MODIFIER] Failed to read hosts file before adding entry for {}: {}", domain, e);
+                return Err(e);
+            }
+        };
+
+        let entry_to_add = get_redirect_entry_line(domain);
+
+        if !current_content.is_empty() && !current_content.ends_with('\n') {
+            current_content.push('\n');
+        }
+        current_content.push_str(&entry_to_add);
+        current_content.push('\n');
+
+        if let Err(e) = fs::write(HOSTS_FILE_PATH, current_content).await {
+            error!("[HOSTS_MODIFIER] FAILED to write redirect entry for {} to hosts file: {}. Check permissions.", domain, e);
             return Err(e);
         }
-        Err(e) => { 
-            error!("[HOSTS_MODIFIER] Error opening hosts file for check: {}", e);
-            return Err(e);
-        }
+        info!("[HOSTS_MODIFIER] Successfully added redirect: {}", entry_to_add.trim());
+        entries_added_count += 1;
     }
 
-
-    let mut current_content = match fs::read_to_string(HOSTS_FILE_PATH).await {
-        Ok(content) => content,
-        Err(e) => {
-            error!("[HOSTS_MODIFIER] Failed to read hosts file before adding entry: {}", e);
-            return Err(e);
-        }
-    };
-    let entry_to_add = get_redirect_entry_line();
-
-    if !current_content.is_empty() && !current_content.ends_with('\n') {
-        current_content.push('\n'); 
+    if entries_added_count > 0 {
+        info!("[HOSTS_MODIFIER] Finished adding {} new redirect entries.", entries_added_count);
     }
-    current_content.push_str(&entry_to_add);
-    current_content.push('\n');
-
-    if let Err(e) = fs::write(HOSTS_FILE_PATH, current_content).await {
-        error!("[HOSTS_MODIFIER] FAILED to write redirect entry to hosts file: {}. Check permissions.", e);
-        return Err(e);
+    if entries_already_exist_count > 0 {
+        info!("[HOSTS_MODIFIER] {} redirect entries already existed.", entries_already_exist_count);
+    }
+    if entries_added_count == 0 && entries_already_exist_count == REDIRECT_DOMAINS.len() {
+        info!("[HOSTS_MODIFIER] All redirect entries already existed. No changes made.");
     }
 
-    info!("[HOSTS_MODIFIER] Successfully added redirect: {}", entry_to_add.trim());
     Ok(())
 }
 
 pub async fn remove_redirect_entry() -> io::Result<()> {
-    info!("[HOSTS_MODIFIER] Attempting to remove redirect for {} from {}", REDIRECT_DOMAIN, HOSTS_FILE_PATH);
+    info!("[HOSTS_MODIFIER] Attempting to remove redirects for {:?} from {}", REDIRECT_DOMAINS, HOSTS_FILE_PATH);
     warn!("[HOSTS_MODIFIER] This operation requires Administrator/root privileges.");
 
     let current_content = match fs::read_to_string(HOSTS_FILE_PATH).await {
@@ -90,41 +106,56 @@ pub async fn remove_redirect_entry() -> io::Result<()> {
             return Ok(());
         }
         Err(e) => {
-            error!("[HOSTS_MODIFIER] Failed to read hosts file before removing entry: {}", e);
+            error!("[HOSTS_MODIFIER] Failed to read hosts file before removing entries: {}", e);
             return Err(e);
         }
     };
 
     let mut new_lines: Vec<String> = Vec::new();
-    let mut removed_count = 0;
-    let entry_to_check_lower = get_redirect_entry_line().trim().to_lowercase();
+    let mut total_removed_count = 0;
+    let original_lines: Vec<&str> = current_content.lines().collect();
+    let mut lines_to_keep: Vec<String> = Vec::new();
 
-    for line in current_content.lines() {
-        let line_trim_lower = line.trim().to_lowercase();
+    for line in original_lines {
+        let mut keep_line = true;
+        for &domain in REDIRECT_DOMAINS {
+            let entry_to_check_lower = get_redirect_entry_line(domain).trim().to_lowercase();
+            let line_trim_lower = line.trim().to_lowercase();
 
-        if line_trim_lower == entry_to_check_lower ||
-           (line_trim_lower.starts_with(&format!("{} {}", REDIRECT_IP, REDIRECT_DOMAIN).to_lowercase()) && line_trim_lower.contains(&COMMENT_TAG.to_lowercase())) {
-            removed_count += 1;
-        } else {
-            new_lines.push(line.to_string());
+            if line_trim_lower == entry_to_check_lower ||
+               (line_trim_lower.starts_with(&format!("{} {}", REDIRECT_IP, domain).to_lowercase()) && line_trim_lower.contains(&COMMENT_TAG.to_lowercase())) {
+                total_removed_count += 1;
+                keep_line = false;
+                info!("[HOSTS_MODIFIER] Marking line for removal: {}", line);
+                break; // Found a match for this line, no need to check other domains for the same line
+            }
+        }
+        if keep_line {
+            lines_to_keep.push(line.to_string());
         }
     }
 
-    if removed_count > 0 {
-        let new_content = new_lines.join("\n");
+
+    if total_removed_count > 0 {
+        let new_content = lines_to_keep.join("\n");
+        // Ensure a trailing newline if content is not empty
         let final_content = if !new_content.is_empty() && !new_content.ends_with('\n') {
             format!("{}\n", new_content)
-        } else {
+        } else if new_content.is_empty() {
+            String::new() // Handle case where file becomes empty
+        }
+         else {
             new_content
         };
 
+
         if let Err(e) = fs::write(HOSTS_FILE_PATH, final_content).await {
-            error!("[HOSTS_MODIFIER] FAILED to write updated hosts file after removing entry: {}. Check permissions.", e);
+            error!("[HOSTS_MODIFIER] FAILED to write updated hosts file after removing entries: {}. Check permissions.", e);
             return Err(e);
         }
-        info!("[HOSTS_MODIFIER] Successfully removed {} redirect entr(y/ies) for {}.", removed_count, REDIRECT_DOMAIN);
+        info!("[HOSTS_MODIFIER] Successfully removed {} redirect entr(y/ies) for {:?}.", total_removed_count, REDIRECT_DOMAINS);
     } else {
-        info!("[HOSTS_MODIFIER] No redirect entry found for {} with the specific tag. No action taken.", REDIRECT_DOMAIN);
+        info!("[HOSTS_MODIFIER] No redirect entries found for {:?} with the specific tag. No action taken.", REDIRECT_DOMAINS);
     }
     Ok(())
 }

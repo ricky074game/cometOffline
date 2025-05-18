@@ -32,9 +32,10 @@ toml = "0.8.19"
 sys-locale = "0.3.2"
 futures = "0.3.31"
 rand = "0.8.5"
-axum = "0.8.4"
+axum = "0.7"
 hyper = "0.14"
 axum-server = { version = "0.6", features = ["tls-rustls"] }
+tower-http = { version = "0.6.4", features = ["fs"] }
 
 
 [build-dependencies]

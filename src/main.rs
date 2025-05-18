@@ -2,11 +2,13 @@ use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 
 use api::gog::overlay::OverlayPeerMessage;
+use axum::extract::Path;
 use clap::{Parser};
 use env_logger::{Builder, Env, Target};
 use futures_util::future::join_all;
 use log::{error, info};
 use reqwest::Client;
+use serde_json::{json, Value};
 use tokio::net::TcpListener;
 use tokio::sync::{broadcast, Mutex};
 use axum::{
@@ -15,9 +17,13 @@ use axum::{
     extract::{
         Query,
         State,
+        Host,
     },
     response::Json,
+    routing::get_service,
+    http::{header, HeaderMap, StatusCode},
 };
+use tower_http::services::ServeFile;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use axum_server::tls_rustls::RustlsConfig;
@@ -40,7 +46,8 @@ static CERT: &[u8] = include_bytes!("../external/rootCA.pem");
 
 #[derive(Clone)]
 struct AppState {
-    user_id: String, // To share the galaxy_user_id with the HTTP handler
+    user_id: String,
+    username: String,
 }
 
 #[derive(Parser, Debug)]
@@ -49,6 +56,21 @@ struct Args {
     #[arg(long, help = "User name")]
     username: String,
 
+}
+
+#[derive(Serialize, Debug)]
+struct GogUser {
+    id: String,
+    username: String,
+    // Add other fields the client might expect, e.g., avatar_url, etc.
+    // For now, keeping it simple.
+}
+
+#[derive(Serialize, Debug)]
+struct GogUsersResponse {
+    // The real API returns an array of users directly, not nested.
+    // Let's assume it's an array of GogUser.
+    users: Vec<GogUser>,
 }
 
 lazy_static! {
@@ -79,7 +101,6 @@ struct TokenRequestParams {
     grant_type: Option<String>,
     client_id: Option<String>,
     refresh_token: Option<String>,
-    // Add other params GOG might send, like client_secret, scope, etc. if needed
 }
 
 #[derive(Serialize, Debug)]
@@ -121,6 +142,81 @@ async fn handle_gog_token_request(
     })
 }
 
+async fn handle_gog_users_request(
+    State(app_state): State<AppState>,
+    Query(params): Query<HashMap<String, String>>,
+    headers: HeaderMap,
+    Host(host): Host,
+) -> Result<Json<serde_json::Value>, StatusCode> { // <-- Change return type
+    info!("[HTTP SERVER] Received /users request on host {}: {:?}, Headers: {:?}", host, params, headers);
+
+    if !headers.contains_key(header::AUTHORIZATION) {
+        error!("[HTTP SERVER] /users request missing Authorization header.");
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    let requested_ids_str = match params.get("ids") {
+        Some(ids) => ids,
+        None => return Err(StatusCode::BAD_REQUEST),
+    };
+
+    let requested_ids: Vec<&str> = requested_ids_str.split(',').collect();
+    let user_id_to_return = requested_ids.get(0);
+
+    let user = serde_json::json!({
+        "id": user_id_to_return,
+        "username": app_state.username,
+        "avatar": {
+            "sdk_img_32": "https://127.0.0.1/avatar_small.jpg",
+            "sdk_img_64": "https://127.0.0.1/avatar_medium.jpg",
+            "sdk_img_184": "https://127.0.0.1/avatar_large.jpg"
+        },
+    });
+
+    if requested_ids.len() == 1 {
+        Ok(Json(user))
+    } else {
+        Ok(Json(json!({ "users": [user] })))
+    }
+}
+
+async fn handle_gog_friends_request(
+    Path(user_id): Path<String>,
+    headers: HeaderMap,
+) -> Json<serde_json::Value> {
+    // Optionally check Authorization header here
+    // Return an empty array or a fake list
+    Json(serde_json::json!({
+        "items": []
+    }))
+}
+
+async fn handle_gog_presence_status(
+    Query(params): Query<HashMap<String, String>>,
+) -> Json<serde_json::Value> {
+    // Example: always return "offline" for all requested user_ids
+    let user_ids = params.get("user_ids")
+        .map(|ids| ids.split(',').collect::<Vec<_>>())
+        .unwrap_or_default();
+
+    let statuses: Vec<_> = user_ids.iter().map(|&id| {
+        serde_json::json!({
+            "user_id": id,
+            "status": "offline"
+        })
+    }).collect();
+
+    Json(serde_json::json!({ "statuses": statuses }))
+}
+
+async fn handle_presence_status(
+    Path(user_id): Path<String>,
+    Json(payload): Json<Value>,
+) -> Json<Value> {
+    Json(serde_json::json!({}))
+}
+
+
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
@@ -152,7 +248,8 @@ async fn main() {
     let cloned_user_info = user_info.clone();
 
     let app_state = AppState {
-        user_id: galaxy_user_id_val.clone(), // Share the consistent user_id
+        user_id: galaxy_user_id_val.clone(), 
+        username: args.username.clone(), 
     };
 
     let token_store: constants::TokenStorage = Arc::new(Mutex::new(HashMap::new()));
@@ -179,6 +276,13 @@ async fn main() {
     tokio::spawn(async move {
         let app = Router::new()
             .route("/token", get(handle_gog_token_request))
+            .route("/users", get(handle_gog_users_request))
+            .route("/avatar_small.jpg", get_service(ServeFile::new("image.jpg")))
+            .route("/avatar_medium.jpg", get_service(ServeFile::new("image.jpg")))
+            .route("/avatar_large.jpg", get_service(ServeFile::new("image.jpg")))
+            .route("/users/:user_id/friends", get(handle_gog_friends_request))
+            .route("/users/:user_id/status", axum::routing::post(handle_presence_status))
+            .route("/presence/status", get(handle_gog_presence_status))
             .with_state(app_state.clone());
 
         let addr = SocketAddr::from(([127, 0, 0, 1], 443));
