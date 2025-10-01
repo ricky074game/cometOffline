@@ -1,6 +1,7 @@
 pub mod gog;
 pub mod handlers;
 pub mod notification_pusher;
+pub mod revolt;
 
 pub mod structs {
     use chrono::{DateTime, Utc};
@@ -43,31 +44,31 @@ pub mod structs {
         Unassigned(u64),
         Lobby(u64),
         User(u64),
+        Game(u64),
     }
 
     impl IDType {
-        /// Parse entity id to this enum
         pub fn parse(id: u64) -> Self {
             let flag = id >> 56;
             let new_value = id << 8 >> 8;
             match flag {
                 1 => Self::Lobby(new_value),
                 2 => Self::User(new_value),
+                11 => Self::Game(new_value),
                 _ => Self::Unassigned(new_value),
             }
         }
-        /// Return entity id with magic flag
         pub fn value(&self) -> u64 {
             match self {
                 Self::Unassigned(id) => *id,
                 Self::Lobby(id) => 1 << 56 | id,
                 Self::User(id) => 2 << 56 | id,
+                Self::Game(id) => 11 << 56 | id,
             }
         }
-        /// Return underlying entity id
         pub fn inner(&self) -> u64 {
             match self {
-                Self::Unassigned(id) | Self::Lobby(id) | Self::User(id) => *id,
+                Self::Unassigned(id) | Self::Lobby(id) | Self::User(id) | Self::Game(id) => *id,
             }
         }
     }

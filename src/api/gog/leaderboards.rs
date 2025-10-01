@@ -11,8 +11,6 @@ pub struct LeaderboardDefinition {
     name: String,
     sort_method: String,
     display_type: String,
-    //locale: String,
-    //is_localized: bool,
 }
 
 impl LeaderboardDefinition {

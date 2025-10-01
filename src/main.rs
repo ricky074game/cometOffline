@@ -27,6 +27,9 @@ use tower_http::services::ServeFile;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use axum_server::tls_rustls::RustlsConfig;
+use api::notification_pusher;
+use api::revolt;
+
 
 #[macro_use]
 extern crate lazy_static;
@@ -38,7 +41,7 @@ mod paths;
 mod proto;
 mod hosts_modifier;
 
-use crate::api::notification_pusher::PusherEvent;
+use crate::api::notification_pusher::{GameInfo, Notification, PusherEvent};
 use crate::api::structs::{Token, UserInfo};
 use rand::{distributions::Alphanumeric, Rng};
 
@@ -56,7 +59,7 @@ struct Args {
     #[arg(long, help = "User name")]
     username: String,
 
-    #[arg(short, long, help = "Enable verbose logging")]
+    #[arg(short = 'd', long, help = "Enable debug logging")]
     verbose: bool,
 }
 
@@ -114,7 +117,7 @@ struct GogAuthTokenResponse {
 
 async fn handle_gog_token_request(
     Query(params): Query<TokenRequestParams>,
-    State(app_state): State<AppState>, // Extract AppState
+    State(app_state): State<AppState>,
 ) -> Json<GogAuthTokenResponse> {
 
     debug!("[HTTP SERVER] Received /token request: {:?}", params);
@@ -133,7 +136,7 @@ async fn handle_gog_token_request(
     Json(GogAuthTokenResponse {
         access_token: new_access_token,
         refresh_token: new_refresh_token,
-        expires_in: 3600, // e.g., 1 hour
+        expires_in: 3600,
         token_type: "Bearer".to_string(),
         session_id: session_id,
         user_id: user_id_for_response,
@@ -182,8 +185,6 @@ async fn handle_gog_friends_request(
     Path(user_id): Path<String>,
     headers: HeaderMap,
 ) -> Json<serde_json::Value> {
-    // Optionally check Authorization header here
-    // Return an empty array or a fake list
     Json(serde_json::json!({
         "items": []
     }))
@@ -217,7 +218,7 @@ async fn handle_presence_status(
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    let log_level = if args.verbose { "debug" } else { "info" };
+    let log_level = if args.verbose { "debug" } else { "warn" };
     let env = Env::default().filter_or("COMET_LOG", log_level);
     Builder::from_env(env)
         .target(Target::Stderr)
@@ -261,14 +262,13 @@ async fn main() {
     let ctrl_c_shutdown_token = shutdown_token.clone();
     let http_server_shutdown_token_for_axum = shutdown_token.clone();
     let tcp_server_shutdown_token = shutdown_token.clone();
-    let hosts_cleanup_shutdown_token = shutdown_token.clone();
-        
-    // Add hosts file
+    let hosts_cleanup_shutdown_token = shutdown_token.clone();    
     if let Err(e) = hosts_modifier::add_redirect_entry().await {
         error!("[MAIN] Failed to add hosts file entry: {}. Ensure running as admin. HTTP redirection for auth.gog.com might not work.", e);
     }
-
-    //Spawn the Axum HTTPS server
+    let (notification_tx, _) = notification_pusher::spawn_notification_channel();
+    let revolt_rx = notification_tx.subscribe();
+    let achievements_from_revolt_tx = revolt::spawn_revolt_integration(revolt_rx);
     tokio::spawn(async move {
         let app = Router::new()
             .route("/token", get(handle_gog_token_request))
@@ -290,19 +290,13 @@ async fn main() {
                 return;
             }
         };
-
         info!("[HTTP SERVER] TLS certificates loaded. Listening on {} (HTTPS)", addr);
-
         let server_future = axum_server::bind_rustls(addr, tls_config)
             .serve(app.into_make_service());
-
-        // Prepare the shutdown signal future
         let shutdown_signal_future = async {
             http_server_shutdown_token_for_axum.cancelled().await;
             info!("[HTTP SERVER] Graceful shutdown signal received for HTTP server.");
         };
-
-        // Run the server with graceful shutdown
         tokio::select! {
             biased;
             server_result = server_future => {
@@ -317,7 +311,6 @@ async fn main() {
         }
         info!("[HTTP SERVER] HTTP server task finished.");
     });
-    // Spawn the TCP server
     let listener = TcpListener::bind("127.0.0.1:9977")
         .await
         .expect("Failed to bind to port 9977 for TCP service");
@@ -331,7 +324,7 @@ async fn main() {
         tokio::signal::ctrl_c()
             .await
             .expect("Failed to listen to ctrl c signal");
-        log::warn!("Ctrl+C received. Initiating shutdown..."); // Changed to warn
+        log::warn!("Ctrl+C received. Initiating shutdown...");
         ctrl_c_shutdown_token.cancel();
     });
     tokio::spawn(async move {
@@ -355,7 +348,7 @@ async fn main() {
 
     loop {
         tokio::select! {
-            biased; // Prioritize shutdown signal
+            biased;
             _ = socket_shutdown_for_loop.cancelled() => {
                 info!("[TCP SERVER] Shutdown signal received, stopping accept loop.");
                 break;
@@ -374,23 +367,26 @@ async fn main() {
                         let handler_shutdown = socket_shutdown_for_loop.clone();
                         let handler_user_info = cloned_user_info.clone(); // This Arc<UserInfo> contains the galaxy_user_id
                         let handler_overlay_event_sender = overlay_event_sender_main.clone();
+                        let handler_notification_tx = notification_tx.clone();
+                        let handler_achievements_from_revolt_rx = achievements_from_revolt_tx.subscribe();
 
                         handlers.push(tokio::spawn(async move {
                             api::handlers::entry_point(
-                                socket, // mut socket: TcpStream
-                                handler_reqwest_client, // reqwest_client: Client
-                                handler_token_store, // token_store: TokenStorage
-                                handler_user_info, // user_info: Arc<UserInfo>
-                                topic_receiver, // mut topic_receiver: Receiver<PusherEvent>
-                                handler_overlay_event_sender, // overlay_event_sender: Sender<(u32, OverlayPeerMessage)>
-                                handler_shutdown // shutdown_token: CancellationToken
+                                socket,
+                                handler_reqwest_client,
+                                handler_token_store,
+                                handler_user_info,
+                                topic_receiver,
+                                handler_overlay_event_sender,
+                                handler_shutdown,
+                                handler_notification_tx,
+                                handler_achievements_from_revolt_rx,
                             )
                             .await;
                         }));
                     }
                     Err(error) => {
                         error!("[TCP SERVER] Failed to accept the connection {:?}", error);
-                        // Potentially break or sleep if accept fails too many times
                     }
                 }
             }

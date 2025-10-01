@@ -2,21 +2,21 @@ use crate::api::gog;
 use crate::api::gog::overlay::OverlayPeerMessage;
 use crate::api::gog::stats::FieldValue;
 use crate::api::handlers::context::HandlerContext;
+use crate::api::notification_pusher::{Achievement, GameInfo, Notification};
 use crate::api::structs::{DataSource, IDType, UserInfo};
 use crate::db::gameplay::{set_stat_float, set_stat_int};
 use crate::paths::REDISTS_STORAGE;
 use crate::{constants, db};
 use base64::prelude::*;
 use chrono::{TimeZone, Utc};
-use log::{debug, info, warn, error};
+use log::{debug, error, info, warn};
 use protobuf::{Enum, Message};
 use reqwest::Client;
 use std::sync::Arc;
 use tokio::io::AsyncWriteExt;
 
-use crate::proto::common_utils::ProtoPayload;
-
 use super::error::*;
+use crate::proto::common_utils::ProtoPayload;
 use crate::proto::galaxy_protocols_communication_service::get_user_achievements_response::UserAchievement;
 use crate::proto::galaxy_protocols_communication_service::EnvironmentType::ENVIRONMENT_PRODUCTION;
 use crate::proto::galaxy_protocols_communication_service::Region::REGION_WORLD_WIDE;
@@ -157,18 +157,12 @@ async fn auth_info_request(
     let main_user_refresh_token = galaxy_token.refresh_token.clone();
     drop(token_storage_lock);
 
-    // OFFLINE MODE:
-    // Call gog::users::get_token_for, which MUST be modified to work offline:
-    // - It should not make any network calls.
-    // - It should use client_id and/or main_user_refresh_token to generate a new dummy/mocked Token.
-    // - It should always return Ok(Token) in a normal offline scenario.
-    // - It will ignore reqwest_client, client_secret, openid if they are not needed for dummy generation.
     info!("Attempting offline token generation for client_id: {}", client_id);
     let new_token_result = gog::users::get_token_for(
         client_id,
         client_secret,
         &main_user_refresh_token,
-        reqwest_client, // Passed, but offline gog::users::get_token_for should ignore it
+        reqwest_client,
         openid,
     )
     .await;
@@ -232,9 +226,7 @@ async fn auth_info_request(
             info!("Client {} marked as 'online' with new refresh token.", client_id);
         }
         Err(e) => {
-            // This block should ideally not be reached if gog::users::get_token_for is correctly mocked for offline mode.
-            // Its failure would indicate a problem in the mocking logic itself.
-            error!("CRITICAL: Offline token generation (gog::users::get_token_for) unexpectedly failed for client_id {}: {:?}. This should not happen in offline mode.", client_id, e);
+            error!("CRITICAL: Offline token generation (gog::users::get_token_for) unexpectedly failed for client_id {}: {:?}.", client_id, e);
             return Err(MessageHandlingError::new(MessageHandlingErrorKind::InternalError(
                 "Offline token generation failed unexpectedly.".to_string(),
             )));
@@ -262,6 +254,26 @@ async fn auth_info_request(
     response_header.set_size(content_buffer.len().try_into().unwrap()); // Consider .map_err
 
     info!("Successfully prepared AuthInfoResponse for client_id: {}", client_id);
+
+    let game_id_str = client_id.clone(); // e.g., "50225266424144145"
+    if let Ok(game_id) = game_id_str.parse::<u64>() {
+        let game_info = GameInfo { game_id };
+        if let Err(e) = context
+            .notification_sender()
+            .send(Notification::GameConnected(game_info))
+        {
+            error!(
+                "[COMMUNICATION_SERVICE] Failed to send GameConnected notification: {}",
+                e
+            );
+        } else {
+            info!(
+                "[COMMUNICATION_SERVICE] Sent GameConnected notification for game_id: {}",
+                game_id
+            );
+        }
+    }
+
     Ok(ProtoPayload {
         header: response_header,
         payload: content_buffer,
@@ -304,8 +316,6 @@ async fn get_user_stats(
     }
 
     context.set_updated_stats(true).await;
-
-    // Prepare response
     let mut header = Header::new();
     header.set_type(
         MessageType::GET_USER_STATS_RESPONSE
@@ -476,39 +486,78 @@ async fn get_user_achievements(
     reqwest_client: &Client,
 ) -> Result<ProtoPayload, MessageHandlingError> {
     let client_id = context.client_id().await.unwrap();
-    let online_achievements = gog::achievements::fetch_achievements(
-        context.token_store(),
-        &client_id,
-        &user_info.galaxy_user_id,
-        reqwest_client,
-    )
-    .await;
-    let local_achievements = db::gameplay::get_achievements(context, false).await;
 
-    let mut achievements_source = DataSource::Online;
-    let (achievements, achievements_mode) = match online_achievements {
-        Ok(achievements) => achievements,
-        Err(_) => match local_achievements {
-            Ok(achievements) => {
-                achievements_source = DataSource::Local;
-                achievements
+    let mut achievements_from_revolt: Option<Vec<Achievement>> =
+        context.get_cached_revolt_achievements().await;
+
+    if achievements_from_revolt.is_none() {
+        let mut attempts = 0;
+        const MAX_ATTEMPTS: u8 = 50;
+
+        while attempts < MAX_ATTEMPTS {
+            if let Some(revolt_achievements) = context.try_receive_achievements().await {
+                if revolt_achievements.game_id.to_string() == client_id {
+                    let cloned_achievements = revolt_achievements.achievements.clone();
+                    achievements_from_revolt = Some(cloned_achievements.clone());
+                    context.cache_revolt_achievements(cloned_achievements).await;
+                    break;
+                }
             }
-            Err(_) => panic!("Unable to load achievements"),
-        },
-    };
-
-    if achievements_source == DataSource::Online {
-        if let Err(err) = db::gameplay::set_achievements(
-            context.db_connection().await,
-            &achievements,
-            &achievements_mode,
-        )
-        .await
-        {
-            warn!("Failed to set achievements in gameplay database {:?}", err);
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            attempts += 1;
         }
-        context.set_updated_achievements(true).await;
     }
+
+    let (db_achievements, achievements_mode) = if achievements_from_revolt.is_some() {
+        info!(
+            "[COMMUNICATION_SERVICE] Using achievements from RevoltUltimate for game_id: {} ({} achievements)",
+            client_id,
+            achievements_from_revolt.as_ref().unwrap().len()
+        );
+
+        (Vec::new(), "0".to_string())
+    } else {
+        info!("[COMMUNICATION_SERVICE] No achievements from RevoltUltimate, falling back to GOG/local");
+        let online_achievements = gog::achievements::fetch_achievements(
+            context.token_store(),
+            &client_id,
+            &user_info.galaxy_user_id,
+            reqwest_client,
+        )
+        .await;
+        let local_achievements = db::gameplay::get_achievements(context, false).await;
+
+        let mut achievements_source = DataSource::Online;
+        let (achievements, achievements_mode): (Vec<gog::achievements::Achievement>, String) =
+            match online_achievements {
+                Ok((achievements, achievements_mode)) => (achievements, achievements_mode),
+                Err(_) => match local_achievements {
+                    Ok((achievements, achievements_mode)) => {
+                        achievements_source = DataSource::Local;
+                        (achievements, achievements_mode)
+                    }
+                    Err(_) => {
+                        warn!("Unable to load achievements from any source");
+                        (Vec::new(), "0".to_string())
+                    }
+                },
+            };
+
+        if achievements_source == DataSource::Online {
+            if let Err(err) = db::gameplay::set_achievements(
+                context.db_connection().await,
+                &achievements,
+                &achievements_mode,
+            )
+            .await
+            {
+                warn!("Failed to set achievements in gameplay database {:?}", err);
+            }
+            context.set_updated_achievements(true).await;
+        }
+
+        (achievements, achievements_mode)
+    };
 
     let mut header = Header::new();
     header.set_type(
@@ -521,26 +570,51 @@ async fn get_user_achievements(
     content.set_achievements_mode(achievements_mode);
     content.set_language(crate::LOCALE.clone());
 
-    for achievement in achievements {
-        let mut proto_achievement = UserAchievement::new();
-        proto_achievement.set_achievement_id(achievement.achievement_id().parse().unwrap());
-        proto_achievement.set_key(achievement.achievement_key().to_owned());
-        proto_achievement.set_name(achievement.name().to_owned());
-        proto_achievement.set_description(achievement.description().to_owned());
-        proto_achievement.set_visible_while_locked(achievement.visible().to_owned());
-        proto_achievement.set_image_url_locked(achievement.image_url_locked().to_owned());
-        proto_achievement.set_image_url_unlocked(achievement.image_url_unlocked().to_owned());
-        proto_achievement.set_rarity(achievement.rarity().to_owned());
-        proto_achievement
-            .set_rarity_level_description(achievement.rarity_level_description().to_owned());
-        proto_achievement.set_rarity_level_slug(achievement.rarity_level_slug().to_owned());
+    if let Some(revolt_achievements) = achievements_from_revolt {
+        for revolt_ach in revolt_achievements.iter() {
+            let mut proto_achievement = UserAchievement::new();
 
-        if let Some(date) = achievement.date_unlocked() {
-            let parsed_date: chrono::DateTime<Utc> = date.parse().unwrap();
-            let timestamp = parsed_date.timestamp() as u32;
-            proto_achievement.set_unlock_time(timestamp);
+            let ach_id = context.get_achievement_id(&revolt_ach.achievement_id).await;
+            proto_achievement.set_achievement_id(ach_id);
+
+            proto_achievement.set_key(revolt_ach.key.clone());
+            proto_achievement.set_name(revolt_ach.name.clone());
+            proto_achievement.set_description(revolt_ach.description.clone());
+            proto_achievement.set_visible_while_locked(true);
+            proto_achievement.set_image_url_locked(revolt_ach.image_url_locked.clone());
+            proto_achievement.set_image_url_unlocked(revolt_ach.image_url_unlocked.clone());
+            proto_achievement.set_rarity(0.0);
+            proto_achievement.set_rarity_level_description("Common".to_string());
+            proto_achievement.set_rarity_level_slug("common".to_string());
+
+            if let Some(unlock_time) = revolt_ach.unlocked_at {
+                proto_achievement.set_unlock_time(unlock_time as u32);
+            }
+
+            content.user_achievements.push(proto_achievement);
         }
-        content.user_achievements.push(proto_achievement);
+    } else {
+        for achievement in db_achievements {
+            let mut proto_achievement = UserAchievement::new();
+            proto_achievement.set_achievement_id(achievement.achievement_id().parse().unwrap());
+            proto_achievement.set_key(achievement.achievement_key().to_owned());
+            proto_achievement.set_name(achievement.name().to_owned());
+            proto_achievement.set_description(achievement.description().to_owned());
+            proto_achievement.set_visible_while_locked(achievement.visible().to_owned());
+            proto_achievement.set_image_url_locked(achievement.image_url_locked().to_owned());
+            proto_achievement.set_image_url_unlocked(achievement.image_url_unlocked().to_owned());
+            proto_achievement.set_rarity(achievement.rarity().to_owned());
+            proto_achievement
+                .set_rarity_level_description(achievement.rarity_level_description().to_owned());
+            proto_achievement.set_rarity_level_slug(achievement.rarity_level_slug().to_owned());
+
+            if let Some(date) = achievement.date_unlocked() {
+                let parsed_date: chrono::DateTime<Utc> = date.parse().unwrap();
+                let timestamp = parsed_date.timestamp() as u32;
+                proto_achievement.set_unlock_time(timestamp);
+            }
+            content.user_achievements.push(proto_achievement);
+        }
     }
 
     let content_buffer = content.write_to_bytes().unwrap();
@@ -558,36 +632,94 @@ async fn unlock_user_achievement(
     _user_info: Arc<UserInfo>,
     _reqwest_client: &Client,
 ) -> Result<ProtoPayload, MessageHandlingError> {
-    let request_data = UnlockUserAchievementRequest::parse_from_bytes(&proto_payload.payload);
-    let request_data = request_data
+    let request = UnlockUserAchievementRequest::parse_from_bytes(&proto_payload.payload)
         .map_err(|err| MessageHandlingError::new(MessageHandlingErrorKind::Proto(err)))?;
 
-    let ach_id: i64 = request_data.achievement_id().try_into().unwrap();
-    let timestamp = request_data.time();
-    let dt = Utc.timestamp_opt(timestamp.into(), 0).unwrap();
-    let timestamp_string = Some(dt.to_rfc3339().to_string());
+    let achievement_id_u64 = request.achievement_id();
+    let unlock_time = request.time();
 
-    // FIXME: Handle errors gracefully
-    // Check with database first
-    let mut achievement = db::gameplay::get_achievement(context, ach_id)
-        .await
-        .expect("Failed to read database");
+    let date_unlocked = Utc.timestamp_opt(unlock_time.try_into().unwrap(), 0).unwrap();
+    let timestamp_string = Some(date_unlocked.to_rfc3339());
 
-    if achievement.date_unlocked().is_none() {
-        info!(
-            "Unlocking achievement {}, {}",
-            achievement.achievement_key(),
-            achievement.name()
-        );
-        db::gameplay::set_achievement(context, ach_id, timestamp_string.clone())
-            .await
-            .expect("Failed to write achievement to database");
-        context.set_updated_achievements(true).await;
-        achievement.date_unlocked = timestamp_string;
-        let pid = context.get_pid().await;
-        let _ = context
-            .overlay_sender()
-            .send((pid, OverlayPeerMessage::Achievement(achievement)));
+    info!("Attempting to unlock achievement with ID: {}", achievement_id_u64);
+    if let Ok(achievement_id_i64) = achievement_id_u64.try_into() {
+        if let Ok(mut db_achievement) = db::gameplay::get_achievement(context, achievement_id_i64).await {
+            if db_achievement.date_unlocked().is_none() {
+                info!(
+                    "Unlocking DB achievement {}, {}",
+                    db_achievement.achievement_key(),
+                    db_achievement.name()
+                );
+                if let Err(err) = db::gameplay::set_achievement(context, achievement_id_i64, timestamp_string.clone()).await {
+                    error!("Failed to unlock DB achievement {}: {}", achievement_id_i64, err);
+                } else {
+                    context.set_updated_achievements(true).await;
+                    db_achievement.date_unlocked = timestamp_string;
+                    let pid = context.get_pid().await;
+                    let _ = context
+                        .overlay_sender()
+                        .send((pid, OverlayPeerMessage::Achievement(db_achievement)));
+                }
+            }
+            let mut header = Header::new();
+            header.set_type(
+                MessageType::UNLOCK_USER_ACHIEVEMENT_RESPONSE
+                    .value()
+                    .try_into()
+                    .unwrap(),
+            );
+            return Ok(ProtoPayload { header, payload: Vec::new() });
+        }
+    }
+    if let Some(achievement_key) = context.get_achievement_key_by_id(achievement_id_u64).await {
+        info!("Found achievement key '{}' for ID {}", achievement_key, achievement_id_u64);
+
+        if let Some(revolt_achievements) = context.get_cached_revolt_achievements().await {
+            if let Some(revolt_ach) = revolt_achievements.iter().find(|ach| ach.achievement_id == achievement_key) {
+                info!("Unlocking RevoltUltimate achievement: {} ({})", revolt_ach.name, revolt_ach.key);
+
+                let overlay_achievement = gog::achievements::Achievement::new(
+                    revolt_ach.achievement_id.clone(),
+                    revolt_ach.key.clone(),
+                    revolt_ach.name.clone(),
+                    revolt_ach.description.clone(),
+                    revolt_ach.image_url_locked.clone(),
+                    revolt_ach.image_url_unlocked.clone(),
+                    true,
+                    timestamp_string,
+                    0.0,
+                    "Common".to_string(),
+                    "common".to_string(),
+                );
+
+                let pid = context.get_pid().await;
+                let _ = context
+                    .overlay_sender()
+                    .send((pid, OverlayPeerMessage::Achievement(overlay_achievement)));
+
+                let notification_achievement = Achievement {
+                    achievement_id: revolt_ach.achievement_id.clone(),
+                    key: revolt_ach.key.clone(),
+                    name: revolt_ach.name.clone(),
+                    description: revolt_ach.description.clone(),
+                    unlocked_at: Some(unlock_time as i64),
+                    image_url_unlocked: revolt_ach.image_url_unlocked.clone(),
+                    image_url_locked: revolt_ach.image_url_locked.clone(),
+                };
+
+                if let Err(e) = context.notification_sender().send(Notification::AchievementUnlocked(notification_achievement)) {
+                    error!("Failed to send achievement unlock notification to RevoltUltimate: {}", e);
+                } else {
+                    info!("Sent achievement unlock notification to RevoltUltimate for: {}", revolt_ach.key);
+                }
+            } else {
+                warn!("Achievement with key '{}' not found in cached RevoltUltimate achievements", achievement_key);
+            }
+        } else {
+            warn!("No cached RevoltUltimate achievements available for achievement key '{}'", achievement_key);
+        }
+    } else {
+        warn!("No mapping found for achievement ID {}", achievement_id_u64);
     }
 
     let mut header = Header::new();

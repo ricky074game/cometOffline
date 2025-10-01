@@ -9,10 +9,11 @@ mod webbroker;
 
 use crate::{constants::TokenStorage, proto::common_utils::ProtoPayload};
 use error::*;
+use tokio::sync::broadcast;
 use std::{sync::Arc, time::Duration};
 
 use crate::api::gog;
-use crate::api::notification_pusher::PusherEvent;
+use crate::api::notification_pusher::{Notification, PusherEvent};
 use crate::api::structs::UserInfo;
 use crate::db;
 use context::HandlerContext;
@@ -29,6 +30,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use super::gog::overlay::OverlayPeerMessage;
+use crate::api::revolt::AchievementsListMessage;
 
 pub async fn entry_point(
     mut socket: TcpStream,
@@ -38,6 +40,8 @@ pub async fn entry_point(
     mut topic_receiver: Receiver<PusherEvent>,
     overlay_event_sender: Sender<(u32, OverlayPeerMessage)>,
     shutdown_token: CancellationToken,
+    notification_tx: Sender<Notification>,
+    achievements_from_revolt_rx: broadcast::Receiver<AchievementsListMessage>,
 ) {
     if let Err(err) = socket.readable().await {
         error!("Failed to wait for socket to be readable {}", err);
@@ -49,6 +53,8 @@ pub async fn entry_point(
         socket,
         token_store,
         overlay_event_sender,
+        notification_tx,
+        achievements_from_revolt_rx,
     ));
     debug!("Awaiting messages");
 
@@ -314,7 +320,6 @@ pub async fn handle_message(
         result.header.sort(),
         result.header.type_()
     );
-    // Prepare response
     if payload.header.has_oseq() {
         result
             .header
@@ -324,7 +329,6 @@ pub async fn handle_message(
     let header_buffer = result.header.write_to_bytes().unwrap();
     let header_size: u16 = header_buffer.len().try_into().unwrap();
     let header_buf = header_size.to_be_bytes();
-
     let mut message_buffer: Vec<u8> =
         Vec::with_capacity(2 + header_buffer.len() + result.payload.len());
     message_buffer.extend(header_buf);
@@ -334,9 +338,7 @@ pub async fn handle_message(
     Ok(message_buffer)
 }
 
-// Sync new things after a cool down or when about to exit
 async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_info: Arc<UserInfo>) {
-    // Make sure we are online
     if !context.is_online().await {
         return;
     }
@@ -379,13 +381,11 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
     let updated_achievements = context.updated_achievements().await;
     let updated_stats = context.updated_stats().await;
     let updated_leaderboards = context.updated_leaderboards().await;
-    // Is there anything to update?
     if !(updated_achievements || updated_stats || updated_leaderboards) {
         return;
     }
 
     if updated_achievements {
-        // Sync achievements
         info!("Uploading new achievements");
         let changed_achievements = db::gameplay::get_achievements(context, true).await;
         match changed_achievements {
@@ -408,7 +408,6 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
                     )
                     .await;
                     if result.is_ok() {
-                        // Update local entry with changed to false
                         let a_id: i64 = achievement.achievement_id().parse().unwrap();
                         sqlx::query("UPDATE achievement SET changed=0 WHERE id=$1")
                             .bind(a_id)
@@ -426,7 +425,6 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
     }
 
     if updated_stats {
-        // Sync stats
         info!("Uploading new stats");
         let changed_statistics = db::gameplay::get_statistics(context, true).await;
         match changed_statistics {
@@ -452,7 +450,6 @@ async fn sync_routine(context: &HandlerContext, reqwest_client: &Client, user_in
                     .await;
 
                     if result.is_ok() {
-                        // Update local entry with changed to false
                         let a_id: i64 = stat.stat_id().parse().unwrap();
                         sqlx::query("UPDATE statistic SET changed=0 WHERE id=$1")
                             .bind(a_id)

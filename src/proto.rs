@@ -1,4 +1,3 @@
-// Load protobuf
 include!(concat!(env!("OUT_DIR"), "/proto/mod.rs"));
 
 pub mod common_utils {

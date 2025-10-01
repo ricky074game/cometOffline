@@ -1,9 +1,16 @@
+use std::collections::HashMap;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::collections::HashSet;
 
 use crate::api::gog::overlay::OverlayPeerMessage;
+use crate::api::notification_pusher::{Achievement, Notification}; // Import Achievement
 use crate::constants::TokenStorage;
 use crate::db;
+use crate::api::revolt::AchievementsListMessage;
+use std::sync::Arc;
 use derive_getters::Getters;
+use log::info;
 use sqlx::SqlitePool;
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpStream;
@@ -31,13 +38,19 @@ pub struct HandlerContext {
     db_connection: Mutex<Option<SqlitePool>>,
     #[getter(skip)]
     state: Mutex<State>,
+    notification_tx: broadcast::Sender<Notification>,
+    achievements_from_revolt_rx: Mutex<broadcast::Receiver<AchievementsListMessage>>,
+    achievement_id_mapping: Mutex<HashMap<String, u64>>,
+    cached_revolt_achievements: Mutex<Option<Vec<Achievement>>>, // FIXED: Changed Notification to Achievement
 }
 
 impl HandlerContext {
     pub fn new(
         socket: TcpStream,
         token_store: TokenStorage,
-        achievement_sender: broadcast::Sender<(u32, OverlayPeerMessage)>,
+        overlay_event_sender: broadcast::Sender<(u32, OverlayPeerMessage)>,
+        notification_tx: broadcast::Sender<Notification>,
+        achievements_from_revolt_rx: broadcast::Receiver<AchievementsListMessage>,
     ) -> Self {
         let state = Mutex::new(State {
             is_online: false,
@@ -53,10 +66,14 @@ impl HandlerContext {
         Self {
             socket: Mutex::new(socket),
             token_store,
-            overlay_sender: achievement_sender,
+            overlay_sender: overlay_event_sender,
             db_connection: Mutex::new(None),
             overlay_listener: Mutex::new(String::default()),
             state,
+            notification_tx,
+            achievements_from_revolt_rx: Mutex::new(achievements_from_revolt_rx),
+            achievement_id_mapping: Mutex::new(HashMap::new()),
+            cached_revolt_achievements: Mutex::new(None), // FIXED: Changed Notification to Achievement
         }
     }
 
@@ -116,7 +133,6 @@ impl HandlerContext {
             .execute(&mut *connection)
             .await?;
 
-        // This may already exist, we don't care
         let _ = sqlx::query("INSERT INTO database_info VALUES ('language', $1) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
             .bind(crate::LOCALE.as_str())
             .execute(&mut *connection)
@@ -165,4 +181,51 @@ impl HandlerContext {
         self.state.lock().await.pid = pid;
         *ov_listener = listener;
     }
+
+    pub fn notification_sender(&self) -> &broadcast::Sender<Notification> {
+        &self.notification_tx
+    }
+    
+    pub async fn try_receive_achievements(&self) -> Option<AchievementsListMessage> {
+        let mut rx = self.achievements_from_revolt_rx.lock().await;
+        rx.try_recv().ok()
+    }
+
+    pub async fn cache_revolt_achievements(&self, achievements: Vec<Achievement>) { // FIXED: Changed Notification to Achievement
+        let mut cache = self.cached_revolt_achievements.lock().await;
+        *cache = Some(achievements);
+        info!("Cached {} achievements from RevoltUltimate", cache.as_ref().unwrap().len());
+    }
+
+    pub async fn get_cached_revolt_achievements(&self) -> Option<Vec<Achievement>> { // FIXED: Changed Notification to Achievement
+        let cache = self.cached_revolt_achievements.lock().await;
+        cache.clone()
+    }
+
+    pub async fn get_achievement_id(&self, achievement_key: &str) -> u64 {
+        let mut mapping = self.achievement_id_mapping.lock().await;
+        if let Some(&id) = mapping.get(achievement_key) {
+            return id;
+        }
+        let id = string_to_achievement_id(achievement_key);
+        mapping.insert(achievement_key.to_string(), id);
+        info!("Generated achievement ID {} for key '{}'", id, achievement_key);
+        id
+    }
+    
+    pub async fn get_achievement_key_by_id(&self, achievement_id: u64) -> Option<String> {
+        let mapping = self.achievement_id_mapping.lock().await;
+        mapping.iter()
+            .find(|(_, &id)| id == achievement_id)
+            .map(|(key, _)| key.clone())
+    }
+}
+
+fn string_to_achievement_id(achievement_key: &str) -> u64 {
+    let bytes = achievement_key.as_bytes();
+    let mut id: u64 = 5381;
+    for &byte in bytes {
+        id = id.wrapping_mul(33).wrapping_add(byte as u64);
+    }
+    if id == 0 { 1 } else { id }
 }

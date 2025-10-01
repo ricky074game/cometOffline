@@ -6,15 +6,15 @@ use log::{info, warn, error, debug};
 #[cfg(target_os = "windows")]
 const HOSTS_FILE_PATH: &str = "C:\\Windows\\System32\\drivers\\etc\\hosts";
 
-const REDIRECT_DOMAINS: &[&str] = &["auth.gog.com", "users.gog.com", "presence.gog.com"]; // Changed to an array
+const REDIRECT_DOMAINS: &[&str] = &["auth.gog.com", "users.gog.com", "presence.gog.com"];
 const REDIRECT_IP: &str = "127.0.0.1";
 const COMMENT_TAG: &str = "# Added by CometOffline";
 
-fn get_redirect_entry_line(domain: &str) -> String { // Added domain parameter
+fn get_redirect_entry_line(domain: &str) -> String { 
     format!("{} {} {}", REDIRECT_IP, domain, COMMENT_TAG)
 }
 
-async fn domain_entry_exists_in_reader(mut reader: impl AsyncBufReadExt + Unpin, domain: &str) -> io::Result<bool> { // Renamed and added domain parameter
+async fn domain_entry_exists_in_reader(mut reader: impl AsyncBufReadExt + Unpin, domain: &str) -> io::Result<bool> { 
     let mut lines = reader.lines();
     let specific_redirect_entry = get_redirect_entry_line(domain);
     let full_entry_line_trim = specific_redirect_entry.trim().to_lowercase();
@@ -42,26 +42,25 @@ pub async fn add_redirect_entry() -> io::Result<()> {
             Ok(file_for_check) => {
                 let reader_for_check = BufReader::new(file_for_check);
                 if domain_entry_exists_in_reader(reader_for_check, domain).await? {
-                    debug!("[HOSTS_MODIFIER] Redirect entry for {} already exists. No action taken.", domain);
+                    debug!("Redirect entry for {} already exists. No action taken.", domain);
                     entries_already_exist_count += 1;
-                    continue; // Move to the next domain
+                    continue; 
                 }
             }
             Err(e) if e.kind() == io::ErrorKind::NotFound => {
-                warn!("[HOSTS_MODIFIER] Hosts file not found at {}. Cannot add entry for {}.", HOSTS_FILE_PATH, domain);
-                return Err(e); // If hosts file not found, can't proceed
+                warn!("Hosts file not found at {}. Cannot add entry for {}.", HOSTS_FILE_PATH, domain);
+                return Err(e);
             }
             Err(e) => {
-                error!("[HOSTS_MODIFIER] Error opening hosts file for check for domain {}: {}", domain, e);
-                return Err(e); // Propagate other errors
+                error!("Error opening hosts file for check for domain {}: {}", domain, e);
+                return Err(e);
             }
         }
 
-        // Read current content for each domain to ensure it's up-to-date if multiple entries are added
         let mut current_content = match fs::read_to_string(HOSTS_FILE_PATH).await {
             Ok(content) => content,
             Err(e) => {
-                error!("[HOSTS_MODIFIER] Failed to read hosts file before adding entry for {}: {}", domain, e);
+                error!("Failed to read hosts file before adding entry for {}: {}", domain, e);
                 return Err(e);
             }
         };
@@ -127,7 +126,7 @@ pub async fn remove_redirect_entry() -> io::Result<()> {
                 total_removed_count += 1;
                 keep_line = false;
                 debug!("[HOSTS_MODIFIER] Marking line for removal: {}", line);
-                break; // Found a match for this line, no need to check other domains for the same line
+                break; 
             }
         }
         if keep_line {
@@ -138,11 +137,10 @@ pub async fn remove_redirect_entry() -> io::Result<()> {
 
     if total_removed_count > 0 {
         let new_content = lines_to_keep.join("\n");
-        // Ensure a trailing newline if content is not empty
         let final_content = if !new_content.is_empty() && !new_content.ends_with('\n') {
             format!("{}\n", new_content)
         } else if new_content.is_empty() {
-            String::new() // Handle case where file becomes empty
+            String::new()
         }
          else {
             new_content

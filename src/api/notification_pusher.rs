@@ -1,9 +1,10 @@
 use futures_util::{SinkExt, StreamExt};
 use log::{debug, error, info, warn};
 use protobuf::{Enum, Message, UnknownValueRef};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::net::TcpStream;
-use tokio::sync::broadcast::Sender;
+use tokio::sync::broadcast::{self, Sender};
 use tokio::time;
 use tokio_tungstenite::{
     connect_async_tls_with_config, tungstenite, MaybeTlsStream, WebSocketStream,
@@ -17,7 +18,7 @@ use crate::proto::{
     galaxy_common_protocols_connection,
     galaxy_protocols_webbroker_service::{
         AuthRequest, MessageSort, MessageType, SubscribeTopicRequest, SubscribeTopicResponse,
-    },
+    },      
     gog_protocols_pb::Header,
 };
 
@@ -40,11 +41,41 @@ pub enum PusherEvent {
     Topic(Vec<u8>, String),
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct GameInfo {
+    pub game_id: u64,
+}
+
+#[derive(Clone, Debug)]
+pub enum Notification {
+    AchievementUnlocked(Achievement),
+    GameConnected(GameInfo),
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Achievement {
+    pub achievement_id: String,
+    pub key: String,
+    pub name: String,
+    pub description: String,
+    pub unlocked_at: Option<i64>,
+    pub image_url_unlocked: String,
+    pub image_url_locked: String,
+}
+
 pub struct NotificationPusherClient {
     pusher_connection: WebSocketStream<MaybeTlsStream<TcpStream>>,
     access_token: String,
     topic_sender: Sender<PusherEvent>,
     shutdown_token: CancellationToken,
+}
+pub fn spawn_pusher_channel() -> (broadcast::Sender<PusherEvent>, broadcast::Receiver<PusherEvent>) {
+    let (tx, rx) = broadcast::channel::<PusherEvent>(20);
+    (tx, rx)
+}
+
+pub fn spawn_notification_channel() -> (broadcast::Sender<Notification>, broadcast::Receiver<Notification>) {
+    broadcast::channel::<Notification>(20)
 }
 
 impl NotificationPusherClient {
@@ -86,7 +117,7 @@ impl NotificationPusherClient {
             shutdown_token,
         }
     }
-
+    
     async fn init_connection(
         access_token: &String,
     ) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, tungstenite::Error> {
@@ -143,13 +174,11 @@ impl NotificationPusherClient {
                     }
                     _ = time::sleep(time::Duration::from_secs(60)) => {
                         if pending_ping {
-                            // Send offline status to contexts
                             if let Err(err) = self.topic_sender.send(PusherEvent::Offline) {
                                 warn!("Failed to send offline event to contexts {}", err.to_string());
                             }
                             break
                         }
-                        // Ping the service to see if we are still online
                         let mut header = Header::new();
                         header.set_type(galaxy_common_protocols_connection::MessageType::PING.value().try_into().unwrap());
                         header.set_sort(MessageSort::MESSAGE_SORT.value().try_into().unwrap());
@@ -159,7 +188,6 @@ impl NotificationPusherClient {
                         header.set_size(content_buffer.len().try_into().unwrap());
                         let header_buffer = header.write_to_bytes().unwrap();
                         let header_size: u16 = header_buffer.len().try_into().unwrap();
-
                         let mut message: Vec<u8> = Vec::new();
                         message.extend(header_size.to_be_bytes().to_vec());
                         message.extend(header_buffer);
@@ -174,7 +202,6 @@ impl NotificationPusherClient {
                         continue
                     }
                     _ = self.shutdown_token.cancelled() => {
-                        // We are shutting down, we can ignore any errors
                         let _ = self.pusher_connection.close(None).await;
                         break;
                     }
@@ -210,7 +237,6 @@ impl NotificationPusherClient {
                     }
 
                     if msg_type == MessageType::AUTH_RESPONSE.value() {
-                        // No content
                         let status_code = parsed_message
                             .header
                             .special_fields
@@ -367,4 +393,5 @@ impl NotificationPusherClient {
 
         Ok(ProtoPayload { header, payload })
     }
+    
 }
