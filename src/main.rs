@@ -63,17 +63,6 @@ struct Args {
     verbose: bool,
 }
 
-#[derive(Serialize, Debug)]
-struct GogUser {
-    id: String,
-    username: String,
-}
-
-#[derive(Serialize, Debug)]
-struct GogUsersResponse {
-    users: Vec<GogUser>,
-}
-
 lazy_static! {
     static ref CONFIG: config::Configuration = config::load_config().unwrap_or_default();
     static ref LOCALE: String = sys_locale::get_locale()
@@ -99,9 +88,9 @@ fn generate_random_numeric_string(len: usize) -> String {
 
 #[derive(Deserialize, Debug)]
 struct TokenRequestParams {
-    grant_type: Option<String>,
+    _grant_type: Option<String>,
     client_id: Option<String>,
-    refresh_token: Option<String>,
+    _refresh_token: Option<String>,
 }
 
 #[derive(Serialize, Debug)]
@@ -182,8 +171,8 @@ async fn handle_gog_users_request(
 }
 
 async fn handle_gog_friends_request(
-    Path(user_id): Path<String>,
-    headers: HeaderMap,
+    Path(_user_id): Path<String>,
+    _headers: HeaderMap,
 ) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "items": []
@@ -208,8 +197,8 @@ async fn handle_gog_presence_status(
 }
 
 async fn handle_presence_status(
-    Path(user_id): Path<String>,
-    Json(payload): Json<Value>,
+    Path(_user_id): Path<String>,
+    Json(_payload): Json<Value>,
 ) -> Json<Value> {
     Json(serde_json::json!({}))
 }
@@ -318,7 +307,7 @@ async fn main() {
 
     let (overlay_event_sender_main, _) = broadcast::channel::<(u32, OverlayPeerMessage)>(16);
     let (topic_sender, _) = tokio::sync::broadcast::channel::<PusherEvent>(20);
-    let (client_exit, mut con_exit_recv) = tokio::sync::mpsc::channel::<()>(10);
+    let (_client_exit, mut con_exit_recv) = tokio::sync::mpsc::channel::<()>(10);
 
     tokio::spawn(async move {
         tokio::signal::ctrl_c()

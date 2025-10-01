@@ -110,7 +110,6 @@ pub async fn remove_redirect_entry() -> io::Result<()> {
         }
     };
 
-    let new_lines: Vec<String> = Vec::new();
     let mut total_removed_count = 0;
     let original_lines: Vec<&str> = current_content.lines().collect();
     let mut lines_to_keep: Vec<String> = Vec::new();

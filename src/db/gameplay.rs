@@ -37,29 +37,6 @@ pub async fn setup_connection(client_id: &str, user_id: &str) -> Result<SqlitePo
     SqlitePool::connect(&url).await
 }
 
-pub async fn has_statistics(database: &SqlitePool) -> bool {
-    let connection = database.acquire().await;
-    if connection.is_err() {
-        return false;
-    }
-    let mut connection = connection.unwrap();
-    let res = sqlx::query("SELECT * FROM database_info WHERE key='stats_retrieved'")
-        .fetch_one(&mut *connection)
-        .await;
-
-    match res {
-        Ok(result) => {
-            let value = result
-                .try_get("value")
-                .unwrap_or("0")
-                .parse::<u8>()
-                .unwrap();
-            !result.is_empty() && value != 0
-        }
-        Err(_) => false,
-    }
-}
-
 pub async fn get_statistics(
     context: &HandlerContext,
     only_changed: bool,
@@ -268,28 +245,6 @@ pub async fn reset_stats(context: &HandlerContext) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn has_achievements(database: &SqlitePool) -> bool {
-    let connection = database.acquire().await;
-    if connection.is_err() {
-        return false;
-    }
-    let mut connection = connection.unwrap();
-    let res = sqlx::query("SELECT * FROM database_info WHERE key='achievements_retrieved'")
-        .fetch_one(&mut *connection)
-        .await;
-
-    match res {
-        Ok(result) => {
-            let value = result
-                .try_get("value")
-                .unwrap_or("0")
-                .parse::<u8>()
-                .unwrap();
-            !result.is_empty() && value != 0
-        }
-        Err(_) => false,
-    }
-}
 
 fn achievement_from_database_row(row: SqliteRow) -> Achievement {
     let visible: u8 = row.try_get("visible_while_locked").unwrap();

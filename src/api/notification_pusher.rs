@@ -1,22 +1,11 @@
-use protobuf::{Enum, Message, UnknownValueRef};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::sync::broadcast::{self, Sender};
-use tokio::time;
 use tokio_tungstenite::{
-    connect_async_tls_with_config, tungstenite, MaybeTlsStream, WebSocketStream,
+    MaybeTlsStream, WebSocketStream,
 };
 use tokio_util::sync::CancellationToken;
-
-use crate::proto::common_utils::ProtoPayload;
-use crate::proto::galaxy_protocols_webbroker_service::MessageFromTopic;
-use crate::proto::{
-    galaxy_common_protocols_connection,
-    galaxy_protocols_webbroker_service::{
-    },      
-    gog_protocols_pb::Header,
-};
 
 lazy_static! {
     static ref TLS_CONFIG: Arc<rustls::ClientConfig> = Arc::new({
@@ -73,24 +62,4 @@ pub fn spawn_notification_channel() -> (broadcast::Sender<Notification>, broadca
 }
 
 impl NotificationPusherClient {
-
-    pub fn parse_message(msg_data: &Vec<u8>) -> Result<ProtoPayload, protobuf::Error> {
-        let data = msg_data.as_slice();
-
-        let mut header_size_buf = [0; 2];
-        header_size_buf.copy_from_slice(&data[..2]);
-        let header_size = u16::from_be_bytes(header_size_buf).into();
-
-        let mut header_buf: Vec<u8> = vec![0; header_size];
-        header_buf.copy_from_slice(&data[2..header_size + 2]);
-
-        let header = Header::parse_from_bytes(&header_buf)?;
-
-        let payload_size = header.size().try_into().unwrap();
-        let mut payload: Vec<u8> = vec![0; payload_size];
-
-        payload.copy_from_slice(&data[header_size + 2..]);
-
-        Ok(ProtoPayload { header, payload })
-    }
 }
