@@ -3,7 +3,6 @@ pub enum MessageHandlingErrorKind {
     NotImplemented,
     Ignored,
     Unauthorized,
-    IO(tokio::io::Error),
     DB(sqlx::Error),
     Network(reqwest::Error),
     Proto(protobuf::Error),
@@ -27,6 +26,16 @@ impl MessageHandlingError {
 
 impl std::fmt::Display for MessageHandlingError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
+        match &self.kind {
+            MessageHandlingErrorKind::NotImplemented => write!(f, "Not implemented"),
+            MessageHandlingErrorKind::Ignored => write!(f, "Ignored"),
+            MessageHandlingErrorKind::Unauthorized => write!(f, "Unauthorized"),
+            MessageHandlingErrorKind::DB(e) => write!(f, "Database error: {}", e),
+            MessageHandlingErrorKind::Network(e) => write!(f, "Network error: {}", e),
+            MessageHandlingErrorKind::Proto(e) => write!(f, "Protobuf error: {}", e),
+            MessageHandlingErrorKind::Json(e) => write!(f, "JSON error: {}", e),
+            MessageHandlingErrorKind::InternalError(msg) => write!(f, "Internal error: {}", msg),
+            MessageHandlingErrorKind::FatalError(msg) => write!(f, "Fatal error: {}", msg),
+        }
     }
 }

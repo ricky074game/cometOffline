@@ -1,4 +1,4 @@
-use crate::api::notification_pusher::{Achievement, GameInfo, Notification};
+use crate::api::notification_pusher::{Achievement, Notification};
 use serde_json::{json, Value};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};

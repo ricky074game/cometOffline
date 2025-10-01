@@ -53,9 +53,9 @@ impl Achievement {
 
 #[derive(Deserialize, Debug, Getters)]
 pub struct AchievementsResponse {
-    total_count: u32,
-    limit: u32,
-    page_token: String,
+    _total_count: u32,
+    _limit: u32,
+    _page_token: String,
     items: Vec<Achievement>,
     achievements_mode: String,
 }

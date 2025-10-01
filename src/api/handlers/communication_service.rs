@@ -255,7 +255,7 @@ async fn auth_info_request(
 
     info!("Successfully prepared AuthInfoResponse for client_id: {}", client_id);
 
-    let game_id_str = client_id.clone(); // e.g., "50225266424144145"
+    let game_id_str = client_id; // e.g., "50225266424144145"
     if let Ok(game_id) = game_id_str.parse::<u64>() {
         let game_info = GameInfo { game_id };
         if let Err(e) = context

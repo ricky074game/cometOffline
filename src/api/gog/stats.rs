@@ -62,7 +62,7 @@ impl Stat {
 
 #[derive(Deserialize, Debug)]
 struct StatsResponse {
-    total_count: u32,
+    _total_count: u32,
     items: Vec<Stat>,
 }
 

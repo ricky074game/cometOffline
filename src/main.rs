@@ -41,7 +41,7 @@ mod paths;
 mod proto;
 mod hosts_modifier;
 
-use crate::api::notification_pusher::{GameInfo, Notification, PusherEvent};
+use crate::api::notification_pusher::PusherEvent;
 use crate::api::structs::{Token, UserInfo};
 use rand::{distributions::Alphanumeric, Rng};
 
@@ -361,7 +361,7 @@ async fn main() {
                         if !ever_connected { 
                             ever_connected = true;
                         }
-                        let mut topic_receiver = topic_sender.subscribe(); 
+                        let topic_receiver = topic_sender.subscribe(); 
                         let handler_reqwest_client = reqwest_client.clone();
                         let handler_token_store = cloned_token_store.clone(); 
                         let handler_shutdown = socket_shutdown_for_loop.clone();

@@ -1,7 +1,7 @@
 use std::io;
 use tokio::fs;
 use tokio::io::{AsyncBufReadExt, BufReader}; 
-use log::{info, warn, error, debug};
+use log::{warn, error, debug};
 
 #[cfg(target_os = "windows")]
 const HOSTS_FILE_PATH: &str = "C:\\Windows\\System32\\drivers\\etc\\hosts";
@@ -14,7 +14,7 @@ fn get_redirect_entry_line(domain: &str) -> String {
     format!("{} {} {}", REDIRECT_IP, domain, COMMENT_TAG)
 }
 
-async fn domain_entry_exists_in_reader(mut reader: impl AsyncBufReadExt + Unpin, domain: &str) -> io::Result<bool> { 
+async fn domain_entry_exists_in_reader(reader: impl AsyncBufReadExt + Unpin, domain: &str) -> io::Result<bool> { 
     let mut lines = reader.lines();
     let specific_redirect_entry = get_redirect_entry_line(domain);
     let full_entry_line_trim = specific_redirect_entry.trim().to_lowercase();
@@ -110,7 +110,7 @@ pub async fn remove_redirect_entry() -> io::Result<()> {
         }
     };
 
-    let mut new_lines: Vec<String> = Vec::new();
+    let new_lines: Vec<String> = Vec::new();
     let mut total_removed_count = 0;
     let original_lines: Vec<&str> = current_content.lines().collect();
     let mut lines_to_keep: Vec<String> = Vec::new();

@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use std::collections::HashSet;
 
 use crate::api::gog::overlay::OverlayPeerMessage;
@@ -8,7 +6,6 @@ use crate::api::notification_pusher::{Achievement, Notification}; // Import Achi
 use crate::constants::TokenStorage;
 use crate::db;
 use crate::api::revolt::AchievementsListMessage;
-use std::sync::Arc;
 use derive_getters::Getters;
 use log::info;
 use sqlx::SqlitePool;
